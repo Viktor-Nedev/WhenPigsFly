@@ -189,9 +189,9 @@ export class Game {
         }
 
         if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
-            this.currentLane = Math.max(-1, this.currentLane - 1);
-        } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
             this.currentLane = Math.min(1, this.currentLane + 1);
+        } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+            this.currentLane = Math.max(-1, this.currentLane - 1);
         }
         this.targetX = this.currentLane * this.laneWidth;
     }
