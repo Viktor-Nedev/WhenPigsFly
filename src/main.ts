@@ -1,6 +1,6 @@
 import { Game } from './Game';
 
-const game = new Game();
+new Game();
 
 document.getElementById('start-btn')?.addEventListener('click', () => {
   const startEvent = new KeyboardEvent('keydown', { code: 'Enter' });
