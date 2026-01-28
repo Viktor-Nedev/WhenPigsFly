@@ -20,7 +20,7 @@ export class Game {
     private currentLane: number = 0;
     private targetX: number = 0;
     private time: number = 0;
-    private altitude: number = 2.5;
+    private altitude: number = 8.0;
     private gltfLoader: GLTFLoader = new GLTFLoader();
     private fbxLoader: FBXLoader = new FBXLoader();
     private textureLoader: THREE.TextureLoader = new THREE.TextureLoader();
@@ -182,17 +182,90 @@ export class Game {
 
     private initPlayer() {
         this.player.add(this.pigMesh);
-        this.pigMesh.scale.set(2.2, 2.2, 2.2);
-        this.gltfLoader.load('/pig.glb',
-            (gltf: any) => this.pigMesh.add(gltf.scene),
-            undefined,
-            () => this.createProceduralPig()
-        );
+        this.pigMesh.scale.set(2.0, 2.0, 2.0);
+        this.refreshPlayerModel();
+
         this.scene.add(this.player);
         this.player.position.set(0, this.altitude, 0);
         this.camera.position.set(0, 10, -35);
         this.camera.lookAt(0, 2, 70);
         this.player.add(this.camera);
+    }
+
+    private refreshPlayerModel() {
+        const pigData = localStorage.getItem('pigGameData');
+        let pigModelPath = '/pig.glb';
+
+        if (pigData) {
+            try {
+                const data = JSON.parse(pigData);
+                const selectedPigId = data.selectedPig || 'basic';
+                console.log('Refreshing player model for:', selectedPigId);
+                if (selectedPigId !== 'basic') {
+                    pigModelPath = `/assets/3D_Models/Pigs/` + this.getPigFilenameById(selectedPigId);
+                }
+            } catch (e) {
+                console.error('Error parsing pig game data:', e);
+            }
+        }
+
+        console.log('Loading pig from path:', pigModelPath);
+
+        this.gltfLoader.load(pigModelPath,
+            (gltf: any) => {
+                this.pigMesh.clear();
+                const model = gltf.scene;
+
+                // Center model and normalize scale (like MenuRenderer)
+                const box = new THREE.Box3().setFromObject(model);
+                const size = new THREE.Vector3();
+                box.getSize(size);
+                const center = new THREE.Vector3();
+                box.getCenter(center);
+
+                // Pivot cleanup: wrap in a group and center
+                const wrapper = new THREE.Group();
+                model.position.x = -center.x;
+                model.position.y = -center.y;
+                model.position.z = -center.z;
+                wrapper.add(model);
+
+                // Scale wrapper to fit standard dimension
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const normalizedScale = 2.0 / (maxDim || 1.0);
+                wrapper.scale.set(normalizedScale, normalizedScale, normalizedScale);
+
+                this.pigMesh.add(wrapper);
+                this.pigMesh.scale.set(2.0, 2.0, 2.0); // Reset to base gameplay scale
+
+                console.log('Pig model loaded and centered successfully');
+            },
+            undefined,
+            (error) => {
+                console.error('Failed to load pig model, using fallback:', error);
+                this.createProceduralPig();
+            }
+        );
+    }
+
+    private getPigFilenameById(id: string): string {
+        const mapping: { [key: string]: string } = {
+            'cute_stylized': 'cute_stylized_pig_low_poly_game_ready.glb',
+            'elegant': 'elegant_pig.glb',
+            'foreman': 'foreman_pig.glb',
+            'hamm': 'kingdom_hearts_iii_-_hamm.glb',
+            'lowpoly': 'low-poly_pig.glb',
+            'minecraft': 'minecraft_-_pig.glb',
+            'king_pig': 'mobile_-_angry_birds_go_-_king_pig.glb',
+            'waddles': 'mr_waddles_gravity_falls.glb',
+            'muddy': 'muddy_pig.glb',
+            'peppa': 'peppa_pig_with_2d_look.glb',
+            'crown': 'pig_with_crown.glb',
+            'piglet': 'piglet.glb',
+            'porky': 'porky_pig.glb',
+            'pumba': 'pumba.glb'
+        };
+        return mapping[id] || 'pig.glb';
     }
 
     private createProceduralPig() {
@@ -357,6 +430,7 @@ export class Game {
     }
 
     private startGame() {
+        this.refreshPlayerModel();
         this.gameActive = true;
         this.score = 0;
         this.distance = 0;
@@ -498,7 +572,7 @@ export class Game {
             }
 
             const pBox = new THREE.Box3().setFromObject(this.pigMesh);
-            pBox.expandByScalar(-1.2);
+            pBox.expandByScalar(-8.0);
 
             for (let i = this.obstacles.length - 1; i >= 0; i--) {
                 const obs = this.obstacles[i];
@@ -518,7 +592,10 @@ export class Game {
                     );
                 }
 
-                if (pBox.intersectsBox(oBox)) this.gameOver();
+                if (pBox.intersectsBox(oBox)) {
+                    console.log('Collision detected with:', obs.name || 'obstacle');
+                    this.gameOver();
+                }
 
                 if (obs.position.z < this.player.position.z - 200) {
                     this.scene.remove(obs);
