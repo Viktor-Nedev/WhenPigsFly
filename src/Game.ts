@@ -362,7 +362,7 @@ export class Game {
         this.distance = 0;
         this.speed = 0.5;
 
-        this.currentBiom = 'sky';
+        this.currentBiom = 'clouds';
 
         this.player.position.set(0, this.altitude, 0);
         this.currentLane = 0;
@@ -392,12 +392,28 @@ export class Game {
     }
 
 
-    private gameOver() {
+    private gameOver(): void {
         this.gameActive = false;
-        const gameOver = document.getElementById('game-over');
-        if (gameOver) gameOver.classList.remove('hidden');
+        const gameOverElement = document.getElementById('game-over');
+        if (gameOverElement) gameOverElement.classList.remove('hidden');
+
         const finalScoreElem = document.getElementById('final-score');
-        if (finalScoreElem) finalScoreElem.innerText = `FINAL SCORE: ${Math.floor(this.score)}`;
+        if (finalScoreElem) {
+            finalScoreElem.textContent = `FINAL SCORE: ${Math.floor(this.score)}`;
+        }
+
+
+        if (window.menuManager) {
+            window.menuManager.updateGameStats(this.score, this.distance);
+        }
+
+
+        setTimeout(() => {
+            if (gameOverElement) gameOverElement.classList.add('hidden');
+            if (window.menuAnimation) {
+                window.menuAnimation.showMenu();
+            }
+        }, 2000);
     }
 
     private onResize() {
