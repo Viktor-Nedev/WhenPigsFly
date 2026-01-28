@@ -26,6 +26,12 @@
             font-family: 'Orbitron', sans-serif;
         }
 
+        #app {
+            visibility: hidden;
+            transition: visibility 0.5s ease;
+        }
+
+
         #main-start-screen {
             position: fixed;
             top: 0;
@@ -38,7 +44,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 9999;
+            z-index: 15000;
             pointer-events: auto;
         }
 
@@ -396,6 +402,7 @@
 </head>
 
 <body>
+
     <div id="app"></div>
 
     <div id="main-start-screen">

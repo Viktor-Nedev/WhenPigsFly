@@ -16,21 +16,18 @@ export class MenuAnimation {
     }
 
     private init(): void {
-        // Уверете се, че стартовия екран е видим, а менюто е скрито
+        // Ensure splash screen is visible immediately
         if (this.startScreen) {
             this.startScreen.style.opacity = '1';
             this.startScreen.style.visibility = 'visible';
-            this.startScreen.style.transform = 'translateY(0) scale(1)';
-            this.startScreen.classList.remove('hidden', 'start-slide-out', 'menu-slide-out');
-            this.startScreen.classList.add('start-slide-in');
+            this.startScreen.style.display = 'flex';
+            this.startScreen.classList.remove('hidden');
         }
 
         if (this.menu) {
             this.menu.style.opacity = '0';
             this.menu.style.visibility = 'hidden';
-            this.menu.style.transform = 'translateX(100px) scale(0.95)';
-            this.menu.classList.remove('hidden', 'menu-slide-in', 'start-slide-in');
-            this.menu.classList.add('menu-slide-out');
+            this.menu.classList.add('hidden');
         }
 
         // Main start button click
@@ -51,7 +48,7 @@ export class MenuAnimation {
         const restartBtn = document.getElementById('restart-btn');
         if (restartBtn) {
             restartBtn.addEventListener('click', () => {
-                this.showMenu();
+                this.showMenuDirect();
             });
         }
     }
@@ -61,57 +58,47 @@ export class MenuAnimation {
 
         this.isAnimating = true;
 
-        // 1. Анимираме изчезването на стартовия екран
-        this.startScreen.classList.remove('start-slide-in');
-        this.startScreen.classList.add('start-slide-out');
+        // CRITICAL: Immediately show the menu layer UNDER the splash screen
+        this.menu.classList.remove('hidden');
+        this.menu.style.opacity = '1';
+        this.menu.style.visibility = 'visible';
+        this.menu.classList.add('menu-active');
 
-        // 2. След края на анимацията, скриваме стартовия екран и показваме менюто
+        // Now fade out the splash screen to reveal the menu waiting underneath
+        this.startScreen.style.transition = 'opacity 1s ease-in-out, transform 1s ease-in-out, filter 1s ease-in-out';
+        this.startScreen.style.opacity = '0';
+        this.startScreen.style.transform = 'scale(1.2)';
+        this.startScreen.style.filter = 'blur(20px)';
+
         setTimeout(() => {
-            // Скриваме стартовия екран
-            this.startScreen!.style.visibility = 'hidden';
-            this.startScreen!.style.opacity = '0';
+            if (this.startScreen) {
+                this.startScreen.style.display = 'none';
+                this.startScreen.classList.add('hidden');
+            }
+            this.isAnimating = false;
 
-            // Показваме менюто
-            this.menu!.style.visibility = 'visible';
-            this.menu!.style.opacity = '1';
-            this.menu!.classList.remove('hidden', 'menu-slide-out');
-
-
-            setTimeout(() => {
-                this.menu!.classList.add('menu-slide-in');
-
-
-                setTimeout(() => {
-                    this.isAnimating = false;
-
-
-                    if (window.menuManager) {
-                        window.menuManager.showMenu();
-                    }
-                }, 600);
-
-            }, 10);
-
-        }, 600);
+            if (window.menuManager) {
+                window.menuManager.showMenu();
+            }
+        }, 1000);
     }
 
     public startGame(): void {
         if (!this.menu || this.isAnimating) return;
 
         this.isAnimating = true;
-
-
-        this.menu.classList.remove('menu-slide-in');
-        this.menu.classList.add('menu-slide-out');
-
+        this.menu.classList.remove('menu-active');
+        this.menu.classList.add('menu-exit');
 
         setTimeout(() => {
             this.menu!.style.visibility = 'hidden';
             this.menu!.style.opacity = '0';
+            this.menu!.classList.add('hidden');
+            this.menu!.classList.remove('menu-exit');
 
             this.isAnimating = false;
 
-
+            // Signal the game to actually start and show the 3D scene
             const startEvent = new KeyboardEvent('keydown', { code: 'Enter' });
             window.dispatchEvent(startEvent);
 
@@ -119,19 +106,21 @@ export class MenuAnimation {
     }
 
     public showGameOver(): void {
-
         setTimeout(() => {
-            this.showMenu();
+            this.showMenuDirect();
         }, 1000);
     }
 
-
     public showMenuDirect(): void {
         if (this.startScreen) {
+            this.startScreen.style.display = 'none';
             this.startScreen.classList.add('hidden');
         }
         if (this.menu) {
-            this.menu.classList.remove('hidden');
+            this.menu.classList.remove('hidden', 'menu-exit');
+            this.menu.style.visibility = 'visible';
+            this.menu.style.opacity = '1';
+            this.menu.classList.add('menu-active');
             if (window.menuManager) {
                 window.menuManager.showMenu();
             }

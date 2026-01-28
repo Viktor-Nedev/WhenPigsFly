@@ -463,6 +463,9 @@ export class Game {
 
         const hud = document.getElementById('hud');
         if (hud) hud.classList.remove('hidden');
+
+        const appView = document.getElementById('app');
+        if (appView) appView.style.visibility = 'visible';
     }
 
 
