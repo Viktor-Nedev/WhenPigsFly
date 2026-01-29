@@ -575,7 +575,8 @@ export class Game {
             }
 
             const pBox = new THREE.Box3().setFromObject(this.pigMesh);
-            pBox.expandByScalar(-8.0);
+            // Slightly shrink the hitbox by 30cm for player fairness
+            pBox.expandByScalar(-0.3);
 
             for (let i = this.obstacles.length - 1; i >= 0; i--) {
                 const obs = this.obstacles[i];
@@ -588,7 +589,8 @@ export class Game {
                 } else {
                     const trunkCenter = new THREE.Vector3();
                     obs.getWorldPosition(trunkCenter);
-                    const trunkRadius = 0.8;
+                    // Increase trunk radius for more realistic forest collisions
+                    const trunkRadius = 1.2;
                     oBox = new THREE.Box3(
                         new THREE.Vector3(trunkCenter.x - trunkRadius, 0, trunkCenter.z - trunkRadius),
                         new THREE.Vector3(trunkCenter.x + trunkRadius, 1000, trunkCenter.z + trunkRadius)
