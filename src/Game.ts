@@ -20,7 +20,7 @@ export class Game {
     private clouds: THREE.Group[] = [];
     private grounds: THREE.Group[] = [];
 
-    // Advanced Wing State
+
     private wingMesh: THREE.Group | null = null;
     private wingMixer: THREE.AnimationMixer | null = null;
     private wingClock: THREE.Clock = new THREE.Clock();
@@ -29,15 +29,14 @@ export class Game {
     private leftWingPart: THREE.Object3D | null = null;
     private rightWingPart: THREE.Object3D | null = null;
 
-    // INTRO & GAMEPLAY STATE
     private isIntro: boolean = false;
     private introPhase: 'diving' | 'transition' | 'done' = 'done';
     private altitude: number = 8.0;
-    private laneWidth: number = 7.0; // Increased from 5.0
+    private laneWidth: number = 7.0;
     private currentLane: number = 0;
     private targetX: number = 0;
 
-    // UNIVERSAL WING REGISTRY
+
     private pigArchetypes: { [pigId: string]: string } = {
         'lowpoly': 'small', 'minecraft': 'small', 'piglet': 'small',
         'hamm': 'large', 'king_pig': 'large', 'muddy': 'large', 'pumba': 'large',
@@ -240,7 +239,7 @@ export class Game {
 
         this.scene.add(this.player);
         this.player.position.set(0, this.altitude, 0);
-        this.camera.position.set(0, 10, -35); // Adjusted for better view of larger lanes
+        this.camera.position.set(0, 10, -35);
         this.camera.lookAt(0, 2, 70);
         this.player.add(this.camera);
     }
@@ -565,7 +564,7 @@ export class Game {
         this.score = 0;
         this.distance = 0;
         this.speed = 0.8;
-        this.altitude = 150.0; // Start high
+        this.altitude = 150.0;
         this.currentBiom = 'intro';
 
         this.player.position.set(0, this.altitude, 0);
@@ -579,15 +578,15 @@ export class Game {
 
         this.obstacles = []; this.decorations = []; this.grounds = []; this.clouds = [];
 
-        this.scene.background = new THREE.Color(0xa6d0ff); // Lighter sky for intro
+        this.scene.background = new THREE.Color(0xa6d0ff);
         this.scene.fog = new THREE.FogExp2(0xa6d0ff, 0.0001);
 
-        // Spawn intro cloud portal at Z=600
-        for (let i = 0; i < 20; i++) {
-            this.createCloud(600 + (Math.random() * 200), true);
+
+        for (let i = 0; i < 40; i++) {
+            this.createCloud(400 + (Math.random() * 400), true);
         }
-        // General background clouds
-        for (let i = 0; i < 20; i++) this.createCloud(i * 500);
+
+        for (let i = 0; i < 10; i++) this.createCloud(i * 50);
 
         const hud = document.getElementById('hud'); if (hud) hud.classList.remove('hidden');
         const appView = document.getElementById('app'); if (appView) appView.style.visibility = 'visible';
@@ -617,7 +616,9 @@ export class Game {
         this.currentBiom = 'clouds';
         this.scene.background = new THREE.Color(0x6db9ff);
         this.scene.fog = new THREE.FogExp2(0x6db9ff, 0.00008);
-        this.initEnvironment();
+        if (this.grounds.length === 0) {
+            this.initEnvironment();
+        }
         this.isIntro = false;
         this.introPhase = 'done';
     }
@@ -653,19 +654,33 @@ export class Game {
         if (this.wingMixer) this.wingMixer.update(delta);
 
         if (this.gameActive) {
-            // INTRO DESCENT LOGIC
+
             if (this.isIntro) {
-                if (this.altitude > 8.5) {
-                    this.altitude -= 1.0; // Fast dive
-                    this.pigMesh.rotation.x = 0.3; // Pitch nose down
+                if (this.player.position.z < 350) {
+
+                    this.altitude = 150.0;
+                    this.pigMesh.rotation.x = 0;
+
+
+                    if (this.player.position.z > 250 && this.grounds.length === 0) {
+                        this.initEnvironment();
+                    }
+                } else if (this.altitude > 8.5) {
+
+                    this.altitude -= 1.5;
+                    this.pigMesh.rotation.x = 0.4;
                 } else {
-                    this.pigMesh.rotation.x *= 0.9; // Level out
-                    if (this.player.position.z > 900) this.switchToNatureBiom();
+
+                    this.altitude = 8.5;
+                    this.pigMesh.rotation.x *= 0.9;
+                    if (this.player.position.z > 700) {
+                        this.switchToNatureBiom();
+                    }
                 }
             }
 
             if (this.currentBiom === 'clouds' && this.score >= 5000) {
-                this.currentBiom = 'sky'; // Level up to space/high sky
+                this.currentBiom = 'sky';
             }
 
             this.player.position.y = this.altitude;

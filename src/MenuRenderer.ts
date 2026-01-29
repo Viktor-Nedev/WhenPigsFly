@@ -50,14 +50,14 @@ export class MenuRenderer {
             const gltf = await this.loader.loadAsync(path);
             this.currentModel = gltf.scene;
 
-            // Center model and normalize scale
+
             const box = new THREE.Box3().setFromObject(this.currentModel);
             const center = new THREE.Vector3();
             box.getCenter(center);
             const size = new THREE.Vector3();
             box.getSize(size);
 
-            // Re-center model pivot
+
             this.currentModel.position.x = -center.x;
             this.currentModel.position.y = -center.y;
             this.currentModel.position.z = -center.z;
@@ -67,21 +67,20 @@ export class MenuRenderer {
             this.scene.add(wrapper);
             this.currentModel = wrapper;
 
-            // Scale to fit comfortably in view
+
             const maxDim = Math.max(size.x, size.y, size.z);
-            const scale = 3.5 / maxDim; // Adjusted for better fill
+            const scale = 3.5 / maxDim;
             wrapper.scale.set(scale, scale, scale);
 
-            // Final scene centering
+
             wrapper.position.set(0, 0, 0);
 
-            // Adjust camera to look better at models
+
             this.camera.position.set(0, 1, 5);
             this.camera.lookAt(0, 0, 0);
 
         } catch (error) {
             console.error('Error loading 3D model in MenuRenderer:', error);
-            // Fallback visualization could go here
         }
     }
 

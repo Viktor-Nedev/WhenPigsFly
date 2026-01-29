@@ -16,7 +16,7 @@ export class MenuAnimation {
     }
 
     private init(): void {
-        // Ensure splash screen is visible immediately
+
         if (this.startScreen) {
             this.startScreen.style.opacity = '1';
             this.startScreen.style.visibility = 'visible';
@@ -30,21 +30,21 @@ export class MenuAnimation {
             this.menu.classList.add('hidden');
         }
 
-        // Main start button click
+
         if (this.mainStartBtn) {
             this.mainStartBtn.addEventListener('click', () => {
                 this.showMenu();
             });
         }
 
-        // Menu play button click
+
         if (this.menuPlayBtn) {
             this.menuPlayBtn.addEventListener('click', () => {
                 this.startGame();
             });
         }
 
-        // Restart button from game over
+
         const restartBtn = document.getElementById('restart-btn');
         if (restartBtn) {
             restartBtn.addEventListener('click', () => {
@@ -58,13 +58,13 @@ export class MenuAnimation {
 
         this.isAnimating = true;
 
-        // CRITICAL: Immediately show the menu layer UNDER the splash screen
+
         this.menu.classList.remove('hidden');
         this.menu.style.opacity = '1';
         this.menu.style.visibility = 'visible';
         this.menu.classList.add('menu-active');
 
-        // Now fade out the splash screen to reveal the menu waiting underneath
+
         this.startScreen.style.transition = 'opacity 1s ease-in-out, transform 1s ease-in-out, filter 1s ease-in-out';
         this.startScreen.style.opacity = '0';
         this.startScreen.style.transform = 'scale(1.2)';
@@ -98,7 +98,7 @@ export class MenuAnimation {
 
             this.isAnimating = false;
 
-            // Signal the game to actually start and show the 3D scene
+
             const startEvent = new KeyboardEvent('keydown', { code: 'Enter' });
             window.dispatchEvent(startEvent);
 

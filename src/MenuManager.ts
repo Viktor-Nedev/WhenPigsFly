@@ -85,7 +85,7 @@ export class MenuManager {
 
         document.getElementById('menu-play-btn')?.addEventListener('click', () => this.startGame());
 
-        // Locker tab switching
+
         document.querySelectorAll('.locker-tab').forEach(tab => {
             tab.addEventListener('click', (e) => {
                 const target = e.currentTarget as HTMLElement;
@@ -96,12 +96,10 @@ export class MenuManager {
                 const content = document.querySelector(`.locker-tab-content[data-tab="${tabId}"]`);
                 if (content) content.classList.add('active');
 
-                // Refresh locker items when tab changes
                 this.loadLockerItems();
             });
         });
 
-        // Shop tab switching
         document.querySelectorAll('.shop-tab').forEach(tab => {
             tab.addEventListener('click', (e) => {
                 const target = e.currentTarget as HTMLElement;
@@ -112,7 +110,7 @@ export class MenuManager {
                 const content = document.querySelector(`.shop-tab-content[data-tab="${tabId}"]`);
                 if (content) content.classList.add('active');
 
-                // Refresh shop items when tab changes
+
                 this.loadShopItems();
             });
         });
@@ -212,7 +210,7 @@ export class MenuManager {
     private loadShopItems(): void {
         console.log('Loading Shop Items...');
 
-        // Load Pigs
+
         const shopPigsGrid = document.getElementById('locked-pigs-grid');
         if (shopPigsGrid) {
             const unowned = this.pigs.filter(p => !p.owned);
@@ -220,7 +218,7 @@ export class MenuManager {
             this.renderShopGrid(shopPigsGrid, unowned, 'pig');
         }
 
-        // Load Wings
+
         const shopWingsGrid = document.getElementById('locked-wings-grid');
         if (shopWingsGrid) {
             const unowned = this.wings.filter(w => !w.owned);
@@ -228,7 +226,7 @@ export class MenuManager {
             this.renderShopGrid(shopWingsGrid, unowned, 'wing');
         }
 
-        // Load Particles
+
         const shopParticlesGrid = document.getElementById('locked-particles-grid');
         if (shopParticlesGrid) {
             const unowned = this.particles.filter(p => !p.owned);
@@ -462,7 +460,7 @@ export class MenuManager {
         alert(`Congratulations! You got: ${randomItem.name}`);
         this.updateStats();
         this.loadLockerItems();
-        this.loadShopItems(); // Ensure shop is updated after chest win
+        this.loadShopItems();
         this.saveGameData();
     }
 
