@@ -29,10 +29,20 @@ export class MenuManager {
 
     private wings = [
         { id: 'none', name: 'No Wings', icon: '🚫', speed: 0, agility: 0, owned: true, selected: true },
-        { id: 'angel', name: 'Angel Wings', icon: '👼', speed: 1, agility: 2, owned: false, price: 300 },
-        { id: 'bat', name: 'Bat Wings', icon: '🦇', speed: 2, agility: 1, owned: false, price: 400 },
-        { id: 'jet', name: 'Jet Wings', icon: '✈️', speed: 3, agility: 1, owned: false, price: 600 },
-        { id: 'dragon', name: 'Dragon Wings', icon: '🐉', speed: 2, agility: 3, owned: false, price: 800 }
+        { id: 'demon', name: 'Demon Wings', model: '/assets/3D_Models/Wings/demon_wings_1.1_low_poly_-_animated.glb', icon: '🦇', speed: 2, agility: 1, owned: false, price: 0 },
+        { id: 'angel_v1', name: 'Angel Wings v1', model: '/assets/3D_Models/Wings/angel-wings.glb', icon: '🕊️', speed: 1, agility: 3, owned: false, price: 0 },
+        { id: 'angel_v2', name: 'Angel Wings v2', model: '/assets/3D_Models/Wings/angel_wings.glb', icon: '🕊️', speed: 1, agility: 3, owned: false, price: 0 },
+        { id: 'angel_low', name: 'Low Poly Angel', model: '/assets/3D_Models/Wings/angel_wings_low_poly.glb', icon: '👼', speed: 1, agility: 2, owned: false, price: 0 },
+        { id: 'black', name: 'Black Wings', model: '/assets/3D_Models/Wings/black_wings.glb', icon: '🌑', speed: 2, agility: 2, owned: false, price: 0 },
+        { id: 'butterfly_v1', name: 'Butterfly v1', model: '/assets/3D_Models/Wings/butterfly_wings (1).glb', icon: '🦋', speed: 1, agility: 4, owned: false, price: 0 },
+        { id: 'butterfly_v2', name: 'Butterfly v2', model: '/assets/3D_Models/Wings/butterfly_wings (2).glb', icon: '🦋', speed: 1, agility: 4, owned: false, price: 0 },
+        { id: 'butterfly_v3', name: 'Butterfly v3', model: '/assets/3D_Models/Wings/butterfly_wings (3).glb', icon: '🦋', speed: 1, agility: 4, owned: false, price: 0 },
+        { id: 'butterfly_v4', name: 'Butterfly v4', model: '/assets/3D_Models/Wings/butterfly_wings (4).glb', icon: '🦋', speed: 1, agility: 4, owned: false, price: 0 },
+        { id: 'butterfly_v5', name: 'Butterfly v5', model: '/assets/3D_Models/Wings/butterfly_wings.glb', icon: '🦋', speed: 1, agility: 4, owned: false, price: 0 },
+        { id: 'butterfly_trans', name: 'Transparent Butterfly', model: '/assets/3D_Models/Wings/butterfly_wings_transperant.glb', icon: '✨', speed: 1, agility: 4, owned: false, price: 0 },
+        { id: 'elytra', name: 'Minecraft Elytra', model: '/assets/3D_Models/Wings/minecraft_-_elytra.glb', icon: '📐', speed: 3, agility: 2, owned: false, price: 0 },
+        { id: 'superman', name: 'Superman Cape', model: '/assets/3D_Models/Wings/superman_cape.glb', icon: '🦸', speed: 3, agility: 1, owned: false, price: 0 },
+        { id: 'basic_wings', name: 'Basic Wings', model: '/assets/3D_Models/Wings/wings.glb', icon: '🦅', speed: 1, agility: 1, owned: false, price: 0 }
     ];
 
     private particles = [
@@ -75,6 +85,7 @@ export class MenuManager {
 
         document.getElementById('menu-play-btn')?.addEventListener('click', () => this.startGame());
 
+        // Locker tab switching
         document.querySelectorAll('.locker-tab').forEach(tab => {
             tab.addEventListener('click', (e) => {
                 const target = e.currentTarget as HTMLElement;
@@ -84,9 +95,13 @@ export class MenuManager {
                 const tabId = target.dataset.tab!;
                 const content = document.querySelector(`.locker-tab-content[data-tab="${tabId}"]`);
                 if (content) content.classList.add('active');
+
+                // Refresh locker items when tab changes
+                this.loadLockerItems();
             });
         });
 
+        // Shop tab switching
         document.querySelectorAll('.shop-tab').forEach(tab => {
             tab.addEventListener('click', (e) => {
                 const target = e.currentTarget as HTMLElement;
@@ -96,6 +111,9 @@ export class MenuManager {
                 const tabId = target.dataset.tab!;
                 const content = document.querySelector(`.shop-tab-content[data-tab="${tabId}"]`);
                 if (content) content.classList.add('active');
+
+                // Refresh shop items when tab changes
+                this.loadShopItems();
             });
         });
 
@@ -153,9 +171,9 @@ export class MenuManager {
         }
 
         if (submenu === 'locker') {
-            setTimeout(() => this.loadLockerItems(), 100);
+            this.loadLockerItems();
         } else if (submenu === 'shop') {
-            setTimeout(() => this.loadShopItems(), 100);
+            this.loadShopItems();
         }
     }
 
@@ -192,25 +210,50 @@ export class MenuManager {
     }
 
     private loadShopItems(): void {
+        console.log('Loading Shop Items...');
+
+        // Load Pigs
         const shopPigsGrid = document.getElementById('locked-pigs-grid');
         if (shopPigsGrid) {
-            shopPigsGrid.innerHTML = '';
-            const unownedPigs = this.pigs.filter(p => !p.owned);
-
-            if (unownedPigs.length === 0) {
-                shopPigsGrid.innerHTML = `
-                    <div class="all-owned-celebration">
-                        Wow, you now got all the pigs! 
-                    </div>
-                `;
-            } else {
-                unownedPigs.forEach(pig => {
-                    const item = this.createShopItem(pig, 'pig');
-                    shopPigsGrid.appendChild(item);
-                    item.addEventListener('click', () => this.buyPig(pig.id));
-                });
-            }
+            const unowned = this.pigs.filter(p => !p.owned);
+            console.log(`Pigs to show in shop: ${unowned.length}`);
+            this.renderShopGrid(shopPigsGrid, unowned, 'pig');
         }
+
+        // Load Wings
+        const shopWingsGrid = document.getElementById('locked-wings-grid');
+        if (shopWingsGrid) {
+            const unowned = this.wings.filter(w => !w.owned);
+            console.log(`Wings to show in shop: ${unowned.length}`);
+            this.renderShopGrid(shopWingsGrid, unowned, 'wing');
+        }
+
+        // Load Particles
+        const shopParticlesGrid = document.getElementById('locked-particles-grid');
+        if (shopParticlesGrid) {
+            const unowned = this.particles.filter(p => !p.owned);
+            console.log(`Particles to show in shop: ${unowned.length}`);
+            this.renderShopGrid(shopParticlesGrid, unowned, 'particle');
+        }
+    }
+
+    private renderShopGrid(grid: HTMLElement, items: any[], type: string): void {
+        grid.innerHTML = '';
+        if (items.length === 0) {
+            grid.innerHTML = `<div class="all-owned-celebration" style="grid-column: 1/-1; padding: 40px; font-size: 20px; color: #ff9800;">
+                You own all items in this category! 🎉
+            </div>`;
+            return;
+        }
+
+        items.forEach(item => {
+            const element = this.createShopItem(item, type);
+            grid.appendChild(element);
+            element.querySelector('.buy-btn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.buyItem(item.id, type);
+            });
+        });
     }
 
     private createLockerItem(item: any, type: string): HTMLElement {
@@ -259,18 +302,23 @@ export class MenuManager {
         return div;
     }
 
-    private buyPig(pigId: string): void {
-        const pig = this.pigs.find(p => p.id === pigId);
-        if (!pig || pig.owned) return;
+    private buyItem(itemId: string, type: string): void {
+        let item: any;
+        if (type === 'pig') item = this.pigs.find(p => p.id === itemId);
+        else if (type === 'wing') item = this.wings.find(w => w.id === itemId);
+        else if (type === 'particle') item = this.particles.find(p => p.id === itemId);
 
-        const price = (pig.price !== undefined) ? pig.price : 200;
+        if (!item || item.owned) return;
+
+        const price = (item.price !== undefined) ? item.price : 200;
 
         if (this.coins >= price) {
             this.coins -= price;
-            pig.owned = true;
+            item.owned = true;
             this.updateStats();
             this.loadShopItems();
             this.saveGameData();
+            console.log(`Purchased ${type}: ${item.name}`);
         } else {
             this.showInsufficientFundsModal();
         }
@@ -414,6 +462,7 @@ export class MenuManager {
         alert(`Congratulations! You got: ${randomItem.name}`);
         this.updateStats();
         this.loadLockerItems();
+        this.loadShopItems(); // Ensure shop is updated after chest win
         this.saveGameData();
     }
 
@@ -453,6 +502,7 @@ export class MenuManager {
 
             this.updateStats();
             this.loadLockerItems();
+            this.loadShopItems();
             this.updatePigDisplay();
             alert('Progress reset!');
         }
@@ -491,6 +541,8 @@ export class MenuManager {
                     if (data.particlesOwned?.includes(particle.id)) particle.owned = true;
                     particle.selected = particle.id === this.selectedParticle;
                 });
+
+                console.log('Game Data Loaded. Coins:', this.coins);
             } catch (e) {
                 console.error('Error loading game data:', e);
             }
@@ -509,6 +561,7 @@ export class MenuManager {
             particlesOwned: this.particles.filter(p => p.owned).map(p => p.id)
         };
         localStorage.setItem('pigGameData', JSON.stringify(data));
+        console.log('Game Data Saved.');
     }
 
     public updateGameStats(score: number, distance: number): void {

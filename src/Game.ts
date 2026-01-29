@@ -2,6 +2,13 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 
+interface WingTransform {
+    y?: number;
+    z?: number;
+    x?: number;
+    scale?: number;
+}
+
 export class Game {
     private scene: THREE.Scene;
     private camera: THREE.PerspectiveCamera;
@@ -12,19 +19,65 @@ export class Game {
     private decorations: THREE.Group[] = [];
     private clouds: THREE.Group[] = [];
     private grounds: THREE.Group[] = [];
+
+    // Advanced Wing State
+    private wingMesh: THREE.Group | null = null;
+    private wingMixer: THREE.AnimationMixer | null = null;
+    private wingClock: THREE.Clock = new THREE.Clock();
+    private activeWingId: string = 'none';
+    private activePigId: string = 'basic';
+    private leftWingPart: THREE.Object3D | null = null;
+    private rightWingPart: THREE.Object3D | null = null;
+
+    // INTRO & GAMEPLAY STATE
+    private isIntro: boolean = false;
+    private introPhase: 'diving' | 'transition' | 'done' = 'done';
+    private altitude: number = 8.0;
+    private laneWidth: number = 7.0; // Increased from 5.0
+    private currentLane: number = 0;
+    private targetX: number = 0;
+
+    // UNIVERSAL WING REGISTRY
+    private pigArchetypes: { [pigId: string]: string } = {
+        'lowpoly': 'small', 'minecraft': 'small', 'piglet': 'small',
+        'hamm': 'large', 'king_pig': 'large', 'muddy': 'large', 'pumba': 'large',
+        'peppa': 'tall', 'porky': 'tall',
+        'waddles': 'long',
+        'basic': 'standard', 'cute_stylized': 'standard', 'elegant': 'standard', 'foreman': 'standard', 'crown': 'standard'
+    };
+
+    private wingConfigs: { [key: string]: { [wingId: string]: WingTransform } } = {
+        'standard': {
+            'default': { y: 0.9, z: -0.4, scale: 5.0 },
+            'superman': { y: 0.8, z: -0.3, scale: 4.8 }
+        },
+        'small': {
+            'default': { y: 0.6, z: -0.3, scale: 4.0 },
+            'superman': { y: 0.5, z: -0.2, scale: 3.8 }
+        },
+        'large': {
+            'default': { y: 1.3, z: -0.5, scale: 6.5 },
+            'superman': { y: 1.2, z: -0.4, scale: 6.0 },
+            'demon': { y: 1.4, z: -0.6, scale: 7.0 }
+        },
+        'tall': {
+            'default': { y: 1.8, z: -0.5, scale: 5.5 },
+            'superman': { y: 1.7, z: -0.4, scale: 5.2 }
+        },
+        'long': {
+            'default': { y: 0.9, z: -0.8, scale: 5.0 }
+        }
+    };
+
     private score: number = 0;
     private distance: number = 0;
     private speed: number = 5;
     private gameActive: boolean = false;
-    private laneWidth: number = 5;
-    private currentLane: number = 0;
-    private targetX: number = 0;
     private time: number = 0;
-    private altitude: number = 8.0;
     private gltfLoader: GLTFLoader = new GLTFLoader();
     private fbxLoader: FBXLoader = new FBXLoader();
     private textureLoader: THREE.TextureLoader = new THREE.TextureLoader();
-    private currentBiom: 'clouds' | 'sky' = 'sky';
+    private currentBiom: 'clouds' | 'sky' | 'intro' = 'sky';
 
 
     private treeModels: THREE.Group[] = [];
@@ -187,7 +240,7 @@ export class Game {
 
         this.scene.add(this.player);
         this.player.position.set(0, this.altitude, 0);
-        this.camera.position.set(0, 10, -35);
+        this.camera.position.set(0, 10, -35); // Adjusted for better view of larger lanes
         this.camera.lookAt(0, 2, 70);
         this.player.add(this.camera);
     }
@@ -200,7 +253,7 @@ export class Game {
             try {
                 const data = JSON.parse(pigData);
                 const selectedPigId = data.selectedPig || 'basic';
-                console.log('Refreshing player model for:', selectedPigId);
+                this.activePigId = selectedPigId;
                 if (selectedPigId !== 'basic') {
                     pigModelPath = `/assets/3D_Models/Pigs/` + this.getPigFilenameById(selectedPigId);
                 }
@@ -209,36 +262,29 @@ export class Game {
             }
         }
 
-        console.log('Loading pig from path:', pigModelPath);
-
         this.gltfLoader.load(pigModelPath,
             (gltf: any) => {
                 this.pigMesh.clear();
                 const model = gltf.scene;
-
-                // Center model and normalize scale (like MenuRenderer)
                 const box = new THREE.Box3().setFromObject(model);
                 const size = new THREE.Vector3();
                 box.getSize(size);
                 const center = new THREE.Vector3();
                 box.getCenter(center);
 
-                // Pivot cleanup: wrap in a group and center
                 const wrapper = new THREE.Group();
                 model.position.x = -center.x;
                 model.position.y = -center.y;
                 model.position.z = -center.z;
                 wrapper.add(model);
 
-                // Scale wrapper to fit standard dimension
                 const maxDim = Math.max(size.x, size.y, size.z);
                 const normalizedScale = 2.0 / (maxDim || 1.0);
                 wrapper.scale.set(normalizedScale, normalizedScale, normalizedScale);
 
                 this.pigMesh.add(wrapper);
-                this.pigMesh.scale.set(2.0, 2.0, 2.0); // Reset to base gameplay scale
-
-                console.log('Pig model loaded and centered successfully');
+                this.pigMesh.scale.set(2.0, 2.0, 2.0);
+                this.loadAndAttachWings();
             },
             undefined,
             (error) => {
@@ -248,22 +294,118 @@ export class Game {
         );
     }
 
+    private loadAndAttachWings() {
+        if (this.wingMesh) {
+            this.player.remove(this.wingMesh);
+            this.wingMesh = null;
+            this.wingMixer = null;
+            this.leftWingPart = null;
+            this.rightWingPart = null;
+        }
+
+        const gameData = localStorage.getItem('pigGameData');
+        if (!gameData) return;
+
+        try {
+            const data = JSON.parse(gameData);
+            const selectedWingId = data.selectedWing || 'none';
+            this.activeWingId = selectedWingId;
+
+            const wingMapping: { [key: string]: string } = {
+                'demon': '/assets/3D_Models/Wings/demon_wings_1.1_low_poly_-_animated.glb',
+                'angel_v1': '/assets/3D_Models/Wings/angel-wings.glb',
+                'angel_v2': '/assets/3D_Models/Wings/angel_wings.glb',
+                'angel_low': '/assets/3D_Models/Wings/angel_wings_low_poly.glb',
+                'black': '/assets/3D_Models/Wings/black_wings.glb',
+                'butterfly_v1': '/assets/3D_Models/Wings/butterfly_wings (1).glb',
+                'butterfly_v2': '/assets/3D_Models/Wings/butterfly_wings (2).glb',
+                'butterfly_v3': '/assets/3D_Models/Wings/butterfly_wings (3).glb',
+                'butterfly_v4': '/assets/3D_Models/Wings/butterfly_wings (4).glb',
+                'butterfly_v5': '/assets/3D_Models/Wings/butterfly_wings.glb',
+                'butterfly_trans': '/assets/3D_Models/Wings/butterfly_wings_transperant.glb',
+                'elytra': '/assets/3D_Models/Wings/minecraft_-_elytra.glb',
+                'superman': '/assets/3D_Models/Wings/superman_cape.glb',
+                'basic_wings': '/assets/3D_Models/Wings/wings.glb'
+            };
+
+            const wingPath = wingMapping[selectedWingId];
+            if (!wingPath) return;
+
+            this.gltfLoader.load(wingPath, (gltf: any) => {
+                const wings = gltf.scene;
+                this.wingMesh = new THREE.Group();
+
+                const isButterfly = selectedWingId.includes('butterfly');
+                wings.traverse((child: THREE.Object3D) => {
+                    if ((child as THREE.Mesh).isMesh) {
+                        const m = (child as THREE.Mesh).material as THREE.MeshStandardMaterial;
+                        if (isButterfly && m) {
+                            m.transparent = true;
+                            m.alphaTest = 0.5;
+                            m.side = THREE.DoubleSide;
+                        }
+                    }
+                });
+
+                const wBox = new THREE.Box3().setFromObject(wings);
+                const wSize = new THREE.Vector3();
+                wBox.getSize(wSize);
+                const wCenter = new THREE.Vector3();
+                wBox.getCenter(wCenter);
+
+                const wWrapper = new THREE.Group();
+                wings.position.set(-wCenter.x, -wCenter.y, -wCenter.z);
+                wWrapper.add(wings);
+
+                const archetype = this.pigArchetypes[this.activePigId] || 'standard';
+                const configGroup = this.wingConfigs[archetype] || this.wingConfigs['standard'];
+                const customConfig = this.wingConfigs[this.activePigId]?.[this.activeWingId] ||
+                    configGroup[this.activeWingId] ||
+                    configGroup['default'];
+
+                const baseScale = customConfig.scale || 5.0;
+                const wMaxDim = Math.max(wSize.x, wSize.y, wSize.z);
+                const normScale = baseScale / (wMaxDim || baseScale);
+                wWrapper.scale.set(normScale, normScale, normScale);
+
+                this.wingMesh.add(wWrapper);
+
+                wings.traverse((child: THREE.Object3D) => {
+                    const name = child.name.toLowerCase();
+                    if (name.includes('left') || name.includes('_l')) {
+                        if (!this.leftWingPart) this.leftWingPart = child;
+                    }
+                    if (name.includes('right') || name.includes('_r')) {
+                        if (!this.rightWingPart) this.rightWingPart = child;
+                    }
+                });
+
+                const finalX = customConfig.x || 0;
+                const finalY = (customConfig.y !== undefined) ? customConfig.y : 0.9;
+                const finalZ = (customConfig.z !== undefined) ? customConfig.z : -0.4;
+
+                this.wingMesh.position.set(finalX, finalY, finalZ);
+                this.player.add(this.wingMesh);
+
+                if (gltf.animations && gltf.animations.length > 0) {
+                    this.wingMixer = new THREE.AnimationMixer(wings);
+                    const action = this.wingMixer.clipAction(gltf.animations[0]);
+                    action.setEffectiveTimeScale(1.8);
+                    action.play();
+                }
+            });
+        } catch (e) {
+            console.error('Error loading wings:', e);
+        }
+    }
+
     private getPigFilenameById(id: string): string {
         const mapping: { [key: string]: string } = {
             'cute_stylized': 'cute_stylized_pig_low_poly_game_ready.glb',
-            'elegant': 'elegant_pig.glb',
-            'foreman': 'foreman_pig.glb',
-            'hamm': 'kingdom_hearts_iii_-_hamm.glb',
-            'lowpoly': 'low-poly_pig.glb',
-            'minecraft': 'minecraft_-_pig.glb',
-            'king_pig': 'mobile_-_angry_birds_go_-_king_pig.glb',
-            'waddles': 'mr_waddles_gravity_falls.glb',
-            'muddy': 'muddy_pig.glb',
-            'peppa': 'peppa_pig_with_2d_look.glb',
-            'crown': 'pig_with_crown.glb',
-            'piglet': 'piglet.glb',
-            'porky': 'porky_pig.glb',
-            'pumba': 'pumba.glb'
+            'elegant': 'elegant_pig.glb', 'foreman': 'foreman_pig.glb', 'hamm': 'kingdom_hearts_iii_-_hamm.glb',
+            'lowpoly': 'low-poly_pig.glb', 'minecraft': 'minecraft_-_pig.glb', 'king_pig': 'mobile_-_angry_birds_go_-_king_pig.glb',
+            'waddles': 'mr_waddles_gravity_falls.glb', 'muddy': 'muddy_pig.glb', 'peppa': 'peppa_pig_with_2d_look.glb',
+            'crown': 'pig_with_crown.glb', 'piglet': 'piglet.glb', 'porky': 'porky_pig.glb', 'pumba': 'pumba.glb'
         };
         return mapping[id] || 'pig.glb';
     }
@@ -279,11 +421,9 @@ export class Game {
         head.add(snout);
         const eyeMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
         const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.05), eyeMat);
-        eyeL.position.set(-0.15, 0.1, 0.26);
-        head.add(eyeL);
+        eyeL.position.set(-0.15, 0.1, 0.26); head.add(eyeL);
         const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.05), eyeMat);
-        eyeR.position.set(0.15, 0.1, 0.26);
-        head.add(eyeR);
+        eyeR.position.set(0.15, 0.1, 0.26); head.add(eyeR);
         const legGeo = new THREE.BoxGeometry(0.15, 0.3, 0.15);
         for (let i = 0; i < 4; i++) {
             const leg = new THREE.Mesh(legGeo, pigMat);
@@ -306,8 +446,7 @@ export class Game {
         }
 
         if (!this.groundModel) return;
-        const gridZ = 15;
-        const gridX = 5;
+        const gridZ = 15; const gridX = 5;
         for (let z = 0; z < gridZ; z++) {
             for (let x = -Math.floor(gridX / 2); x <= Math.floor(gridX / 2); x++) {
                 this.spawnGroundSegment(x * this.tileWidth, z * this.tileSize);
@@ -325,15 +464,11 @@ export class Game {
 
         const density = 5;
         for (let i = 0; i < density; i++) this.spawnDecoration(x, z);
-
         if (x === 0) {
             this.spawnPathBorder(this.laneWidth * 1.5, z);
             this.spawnPathBorder(-this.laneWidth * 1.5, z);
         }
-
-        if (Math.abs(x) >= this.tileWidth * 2) {
-            this.spawnMountain(x, z);
-        }
+        if (Math.abs(x) >= this.tileWidth * 2) this.spawnMountain(x, z);
     }
 
     private spawnPathBorder(x: number, z: number) {
@@ -341,8 +476,7 @@ export class Game {
         const fl = this.flowerModels[Math.floor(Math.random() * this.flowerModels.length)].clone();
         fl.position.set(x + (Math.random() - 0.5) * 1, 0, z + (Math.random() - 0.5) * this.tileSize);
         fl.rotation.y = Math.random() * Math.PI;
-        this.scene.add(fl);
-        this.decorations.push(fl);
+        this.scene.add(fl); this.decorations.push(fl);
     }
 
     private spawnMountain(x: number, z: number) {
@@ -352,8 +486,7 @@ export class Game {
         mount.position.set(x + side * (Math.random() * 50 + 50), 0, z + (Math.random() - 0.5) * this.tileSize);
         mount.scale.multiplyScalar(Math.random() * 15 + 15);
         mount.rotation.y = Math.random() * Math.PI;
-        this.scene.add(mount);
-        this.decorations.push(mount);
+        this.scene.add(mount); this.decorations.push(mount);
     }
 
     private spawnDecoration(centerX: number, centerZ: number) {
@@ -362,27 +495,22 @@ export class Game {
         const deco = models[Math.floor(Math.random() * models.length)].clone();
         const decoX = centerX + (Math.random() - 0.5) * this.tileWidth;
         const decoZ = centerZ + (Math.random() - 0.5) * this.tileSize;
-
         if (Math.abs(decoX) < this.laneWidth * 1.4) return;
-
         deco.position.set(decoX, 0, decoZ);
         deco.rotation.y = Math.random() * Math.PI * 2;
         deco.scale.multiplyScalar(0.8 + Math.random() * 0.5);
-        this.scene.add(deco);
-        this.decorations.push(deco);
+        this.scene.add(deco); this.decorations.push(deco);
     }
 
     private spawnObstacle() {
-        if (!this.gameActive) return;
-
+        if (!this.gameActive || this.isIntro) return;
         if (this.currentBiom === 'sky') {
             if (this.skyObstacleModels.length === 0) return;
             const lane = (Math.floor(Math.random() * 3) - 1) * this.laneWidth;
             const obstacle = this.skyObstacleModels[Math.floor(Math.random() * this.skyObstacleModels.length)].clone();
             obstacle.position.set(lane, Math.random() * 10 - 5, this.player.position.z + 550);
             obstacle.rotation.y = Math.random() * Math.PI * 2;
-            this.scene.add(obstacle);
-            this.obstacles.push(obstacle);
+            this.scene.add(obstacle); this.obstacles.push(obstacle);
         } else {
             if (this.treeModels.length === 0) return;
             const lane = (Math.floor(Math.random() * 3) - 1) * this.laneWidth;
@@ -390,8 +518,7 @@ export class Game {
             tree.position.set(lane, 0, this.player.position.z + 550);
             tree.rotation.y = Math.random() * Math.PI * 2;
             tree.scale.multiplyScalar(1.2);
-            this.scene.add(tree);
-            this.obstacles.push(tree);
+            this.scene.add(tree); this.obstacles.push(tree);
         }
     }
 
@@ -402,22 +529,23 @@ export class Game {
         const offsetY = Math.random() * 30 - 10;
         deco.position.set(offsetX, offsetY, this.player.position.z + 400 + Math.random() * 200);
         deco.rotation.y = Math.random() * Math.PI * 2;
-        this.scene.add(deco);
-        this.decorations.push(deco);
+        this.scene.add(deco); this.decorations.push(deco);
     }
 
-    private createCloud(z: number) {
+    private createCloud(z: number, isPortal: boolean = false) {
         const group = new THREE.Group();
-        const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4 });
-        for (let i = 0; i < 10; i++) {
-            const geo = new THREE.SphereGeometry(Math.random() * 40 + 20, 6, 6);
+        const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: isPortal ? 0.9 : 0.4 });
+        const count = isPortal ? 30 : 10;
+        const range = isPortal ? 300 : 200;
+        for (let i = 0; i < count; i++) {
+            const geo = new THREE.SphereGeometry(Math.random() * (isPortal ? 80 : 40) + 20, 6, 6);
             const part = new THREE.Mesh(geo, mat);
-            part.position.set((Math.random() - 0.5) * 200, (Math.random() - 0.5) * 80, (Math.random() - 0.5) * 200);
+            part.position.set((Math.random() - 0.5) * range, (Math.random() - 0.5) * 80, (Math.random() - 0.5) * range);
             group.add(part);
         }
-        group.position.set((Math.random() - 0.5) * 5000, this.altitude + 300 + Math.random() * 400, z);
-        this.scene.add(group);
-        this.clouds.push(group);
+        const spread = isPortal ? 100 : 5000;
+        group.position.set((Math.random() - 0.5) * spread, isPortal ? this.altitude : this.altitude + 300 + Math.random() * 400, z);
+        this.scene.add(group); this.clouds.push(group);
     }
 
     private onKeyDown(e: KeyboardEvent) {
@@ -432,11 +560,13 @@ export class Game {
     private startGame() {
         this.refreshPlayerModel();
         this.gameActive = true;
+        this.isIntro = true;
+        this.introPhase = 'diving';
         this.score = 0;
         this.distance = 0;
-        this.speed = 0.5;
-
-        this.currentBiom = 'clouds';
+        this.speed = 0.8;
+        this.altitude = 150.0; // Start high
+        this.currentBiom = 'intro';
 
         this.player.position.set(0, this.altitude, 0);
         this.currentLane = 0;
@@ -445,27 +575,22 @@ export class Game {
         this.obstacles.forEach(o => this.scene.remove(o));
         this.decorations.forEach(d => this.scene.remove(d));
         this.grounds.forEach(g => this.scene.remove(g));
+        this.clouds.forEach(c => this.scene.remove(c));
 
-        this.obstacles = [];
-        this.decorations = [];
-        this.grounds = [];
+        this.obstacles = []; this.decorations = []; this.grounds = []; this.clouds = [];
 
-        this.scene.background = new THREE.Color(0x6db9ff);
-        this.scene.fog = new THREE.FogExp2(0x6db9ff, 0.00008);
+        this.scene.background = new THREE.Color(0xa6d0ff); // Lighter sky for intro
+        this.scene.fog = new THREE.FogExp2(0xa6d0ff, 0.0001);
 
-        this.initEnvironment();
+        // Spawn intro cloud portal at Z=600
+        for (let i = 0; i < 20; i++) {
+            this.createCloud(600 + (Math.random() * 200), true);
+        }
+        // General background clouds
+        for (let i = 0; i < 20; i++) this.createCloud(i * 500);
 
-        const startScreen = document.getElementById('start-screen');
-        if (startScreen) startScreen.classList.add('hidden');
-
-        const gameOver = document.getElementById('game-over');
-        if (gameOver) gameOver.classList.add('hidden');
-
-        const hud = document.getElementById('hud');
-        if (hud) hud.classList.remove('hidden');
-
-        const appView = document.getElementById('app');
-        if (appView) appView.style.visibility = 'visible';
+        const hud = document.getElementById('hud'); if (hud) hud.classList.remove('hidden');
+        const appView = document.getElementById('app'); if (appView) appView.style.visibility = 'visible';
     }
 
 
@@ -473,23 +598,12 @@ export class Game {
         this.gameActive = false;
         const gameOverElement = document.getElementById('game-over');
         if (gameOverElement) gameOverElement.classList.remove('hidden');
-
         const finalScoreElem = document.getElementById('final-score');
-        if (finalScoreElem) {
-            finalScoreElem.textContent = `FINAL SCORE: ${Math.floor(this.score)}`;
-        }
-
-
-        if (window.menuManager) {
-            window.menuManager.updateGameStats(this.score, this.distance);
-        }
-
-
+        if (finalScoreElem) finalScoreElem.textContent = `FINAL SCORE: ${Math.floor(this.score)}`;
+        if (window.menuManager) window.menuManager.updateGameStats(this.score, this.distance);
         setTimeout(() => {
             if (gameOverElement) gameOverElement.classList.add('hidden');
-            if (window.menuAnimation) {
-                window.menuAnimation.showMenu();
-            }
+            if (window.menuAnimation) window.menuAnimation.showMenu();
         }, 2000);
     }
 
@@ -499,35 +613,68 @@ export class Game {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-
-    private switchToSkyBiom() {
-
-        this.currentBiom = 'sky';
+    private switchToNatureBiom() {
+        this.currentBiom = 'clouds';
         this.scene.background = new THREE.Color(0x6db9ff);
         this.scene.fog = new THREE.FogExp2(0x6db9ff, 0.00008);
         this.initEnvironment();
-
+        this.isIntro = false;
+        this.introPhase = 'done';
     }
 
 
     private animate() {
         requestAnimationFrame(() => this.animate());
-        this.time += 0.01;
+        const delta = this.wingClock.getDelta();
+        const t = performance.now() * 0.001;
+
+        if (this.wingMesh && this.activeWingId !== 'none') {
+            const isGlider = (this.activeWingId === 'superman' || this.activeWingId === 'elytra');
+            if (isGlider) {
+                this.wingMesh.rotation.x = Math.sin(t * 15) * 0.02;
+            } else {
+                const lift = Math.sin(t * 6) * 0.15;
+                const archetype = this.pigArchetypes[this.activePigId] || 'standard';
+                const configGroup = this.wingConfigs[archetype] || this.wingConfigs['standard'];
+                const customConfig = this.wingConfigs[this.activePigId]?.[this.activeWingId] || configGroup[this.activeWingId] || configGroup['default'];
+                const baseAnchorY = (customConfig.y !== undefined) ? customConfig.y : 0.9;
+
+                this.wingMesh.position.y = baseAnchorY + lift;
+                const flapCycle = Math.sin(t * 8);
+                const flapAngle = 0.6 + (flapCycle * 0.4);
+                if (this.leftWingPart && this.rightWingPart) {
+                    this.leftWingPart.rotation.z = flapAngle;
+                    this.rightWingPart.rotation.z = -flapAngle;
+                } else {
+                    this.wingMesh.rotation.x = Math.sin(t * 8) * 0.15;
+                }
+            }
+        }
+        if (this.wingMixer) this.wingMixer.update(delta);
 
         if (this.gameActive) {
-
-
-            if (this.currentBiom === 'clouds' && this.score >= 1000) {
-                this.switchToSkyBiom();
+            // INTRO DESCENT LOGIC
+            if (this.isIntro) {
+                if (this.altitude > 8.5) {
+                    this.altitude -= 1.0; // Fast dive
+                    this.pigMesh.rotation.x = 0.3; // Pitch nose down
+                } else {
+                    this.pigMesh.rotation.x *= 0.9; // Level out
+                    if (this.player.position.z > 900) this.switchToNatureBiom();
+                }
             }
 
+            if (this.currentBiom === 'clouds' && this.score >= 5000) {
+                this.currentBiom = 'sky'; // Level up to space/high sky
+            }
 
-
-
+            this.player.position.y = this.altitude;
             this.player.position.z += this.speed;
             this.distance = this.player.position.z;
-            this.score += 0.1;
-            this.speed += 0.0001;
+            if (!this.isIntro) {
+                this.score += 0.1;
+                this.speed += 0.0001;
+            }
             this.player.position.x += (this.targetX - this.player.position.x) * 0.1;
 
             const scoreElem = document.getElementById('score');
@@ -556,55 +703,39 @@ export class Game {
 
             for (let i = this.decorations.length - 1; i >= 0; i--) {
                 if (this.decorations[i].position.z < this.player.position.z - 200) {
-                    this.scene.remove(this.decorations[i]);
-                    this.decorations.splice(i, 1);
+                    this.scene.remove(this.decorations[i]); this.decorations.splice(i, 1);
                 }
             }
-
             this.clouds.forEach(cloud => {
                 if (cloud.position.z < this.player.position.z - 1000) {
                     cloud.position.z += 10000;
-                    cloud.position.x = (Math.random() - 0.5) * 10000;
                 }
             });
 
             if (Math.random() < 0.012) this.spawnObstacle();
 
-            if (this.currentBiom === 'sky' && Math.random() < 0.008) {
-                this.spawnSkyDecoration();
-            }
-
-            const pBox = new THREE.Box3().setFromObject(this.pigMesh);
-            // Slightly shrink the hitbox by 30cm for player fairness
-            pBox.expandByScalar(-0.3);
-
-            for (let i = this.obstacles.length - 1; i >= 0; i--) {
-                const obs = this.obstacles[i];
-
-                let oBox: THREE.Box3;
-
-                if (this.currentBiom === 'sky') {
-                    oBox = new THREE.Box3().setFromObject(obs);
-                    oBox.expandByScalar(-2.5);
-                } else {
-                    const trunkCenter = new THREE.Vector3();
-                    obs.getWorldPosition(trunkCenter);
-                    // Increase trunk radius for more realistic forest collisions
-                    const trunkRadius = 1.2;
-                    oBox = new THREE.Box3(
-                        new THREE.Vector3(trunkCenter.x - trunkRadius, 0, trunkCenter.z - trunkRadius),
-                        new THREE.Vector3(trunkCenter.x + trunkRadius, 1000, trunkCenter.z + trunkRadius)
-                    );
-                }
-
-                if (pBox.intersectsBox(oBox)) {
-                    console.log('Collision detected with:', obs.name || 'obstacle');
-                    this.gameOver();
-                }
-
-                if (obs.position.z < this.player.position.z - 200) {
-                    this.scene.remove(obs);
-                    this.obstacles.splice(i, 1);
+            if (!this.isIntro) {
+                const pBox = new THREE.Box3().setFromObject(this.pigMesh);
+                pBox.expandByScalar(-0.3);
+                for (let i = this.obstacles.length - 1; i >= 0; i--) {
+                    const obs = this.obstacles[i];
+                    let oBox: THREE.Box3;
+                    if (this.currentBiom === 'sky') {
+                        oBox = new THREE.Box3().setFromObject(obs);
+                        oBox.expandByScalar(-2.5);
+                    } else {
+                        const trunkCenter = new THREE.Vector3();
+                        obs.getWorldPosition(trunkCenter);
+                        const trunkRadius = 1.2;
+                        oBox = new THREE.Box3(
+                            new THREE.Vector3(trunkCenter.x - trunkRadius, 0, trunkCenter.z - trunkRadius),
+                            new THREE.Vector3(trunkCenter.x + trunkRadius, 1000, trunkCenter.z + trunkRadius)
+                        );
+                    }
+                    if (pBox.intersectsBox(oBox)) this.gameOver();
+                    if (obs.position.z < this.player.position.z - 200) {
+                        this.scene.remove(obs); this.obstacles.splice(i, 1);
+                    }
                 }
             }
         }
