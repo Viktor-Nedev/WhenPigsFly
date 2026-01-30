@@ -28,9 +28,9 @@ export class Game {
     private activePigId: string = 'basic';
     private leftWingPart: THREE.Object3D | null = null;
     private rightWingPart: THREE.Object3D | null = null;
+    private objectMixers: THREE.AnimationMixer[] = [];
 
     private isIntro: boolean = false;
-    private introPhase: 'diving' | 'transition' | 'done' = 'done';
     private altitude: number = 8.0;
     private laneWidth: number = 7.0;
     private currentLane: number = 0;
@@ -72,11 +72,10 @@ export class Game {
     private distance: number = 0;
     private speed: number = 5;
     private gameActive: boolean = false;
-    private time: number = 0;
     private gltfLoader: GLTFLoader = new GLTFLoader();
     private fbxLoader: FBXLoader = new FBXLoader();
     private textureLoader: THREE.TextureLoader = new THREE.TextureLoader();
-    private currentBiom: 'clouds' | 'sky' | 'intro' = 'sky';
+    private currentBiom: 'clouds' | 'sky' | 'city' | 'nature' | 'intro' | 'transitioning_to_sky' | 'transitioning_to_city' = 'sky';
 
 
     private treeModels: THREE.Group[] = [];
@@ -87,10 +86,16 @@ export class Game {
     private sharedTexture: THREE.Texture | null = null;
 
     private skyObstacleModels: THREE.Group[] = [];
-    private skyDecoModels: THREE.Group[] = [];
+    private skyModelAnimations: Map<string, THREE.AnimationClip[]> = new Map();
+
+    private cityGroundModels: THREE.Group[] = [];
+    private cityObstacleModels: THREE.Group[] = [];
+    private cityDecorationModels: THREE.Group[] = [];
 
     private tileSize: number = 0;
     private tileWidth: number = 0;
+    private transitionStartZ: number = 0;
+    private targetAltitude: number = 8.5;
 
     constructor() {
         this.scene = new THREE.Scene();
@@ -108,6 +113,8 @@ export class Game {
         this.createLights();
         this.loadNatureAssets().then(() => {
             return this.loadSkyAssets();
+        }).then(() => {
+            return this.loadCityAssets();
         }).then(() => {
             this.initEnvironment();
         }).catch(err => console.error("Error loading assets:", err));
@@ -196,21 +203,25 @@ export class Game {
         };
 
         try {
-            const airplane = await this.gltfLoader.loadAsync('/Sky/airplane.glb');
+            const airplane = await this.gltfLoader.loadAsync('/assets/3D_Models/Bioms/Sky/airplane.glb');
             ensureMaterials(airplane.scene);
             airplane.scene.scale.set(0.008, 0.008, 0.008);
+            airplane.scene.name = 'airplane';
             this.skyObstacleModels.push(airplane.scene);
+            if (airplane.animations) this.skyModelAnimations.set('airplane', airplane.animations);
         } catch (e) { console.error('Failed to load airplane:', e); }
 
         try {
-            const eagle = await this.gltfLoader.loadAsync('/Sky/eagle.glb');
+            const eagle = await this.gltfLoader.loadAsync('/assets/3D_Models/Bioms/Sky/eagle.glb');
             ensureMaterials(eagle.scene);
             eagle.scene.scale.set(0.01, 0.01, 0.01);
-            this.skyDecoModels.push(eagle.scene);
+            eagle.scene.name = 'eagle';
+            this.skyObstacleModels.push(eagle.scene);
+            if (eagle.animations) this.skyModelAnimations.set('eagle', eagle.animations);
         } catch (e) { console.error('Failed to load eagle:', e); }
 
         try {
-            const balloon = await this.fbxLoader.loadAsync('/Sky/Hot_Air_Balloon_-_Low_Poly-0e6e0bb1/fbx/source/hot_air_balloon.fbx');
+            const balloon = await this.fbxLoader.loadAsync('/assets/3D_Models/Bioms/Sky/Hot_Air_Balloon_-_Low_Poly-0e6e0bb1/fbx/source/hot_air_balloon.fbx');
             balloon.traverse((child: THREE.Object3D) => {
                 if ((child as THREE.Mesh).isMesh) {
                     (child as THREE.Mesh).material = new THREE.MeshStandardMaterial({
@@ -221,15 +232,69 @@ export class Game {
                 }
             });
             balloon.scale.set(0.008, 0.008, 0.008);
-            this.skyDecoModels.push(balloon);
+            balloon.name = 'balloon';
+            this.skyObstacleModels.push(balloon);
+
+            if (balloon.animations) this.skyModelAnimations.set('balloon', balloon.animations);
         } catch (e) { console.error('Failed to load balloon:', e); }
 
         try {
-            const harrier = await this.gltfLoader.loadAsync('/Sky/Low_poly_AV-8B_Harrier_II-bd0a99d3/glb/converted/low_poly_av_8b_harrier_ii.glb');
+            const harrier = await this.gltfLoader.loadAsync('/assets/3D_Models/Bioms/Sky/Low_poly_AV-8B_Harrier_II-bd0a99d3/glb/converted/low_poly_av_8b_harrier_ii.glb');
             ensureMaterials(harrier.scene);
             harrier.scene.scale.set(0.015, 0.015, 0.015);
+            harrier.scene.name = 'harrier';
             this.skyObstacleModels.push(harrier.scene);
+            if (harrier.animations) this.skyModelAnimations.set('harrier', harrier.animations);
         } catch (e) { console.error('Failed to load harrier:', e); }
+    }
+
+    private async loadCityAssets() {
+        const cityPath = '/assets/3D_Models/Bioms/City/fbx/Separate_assets_fbx_extracted/Separate_assets_fbx/';
+        const ensureMaterials = (object: THREE.Object3D, color: number = 0x888888) => {
+            object.traverse((child: THREE.Object3D) => {
+                if ((child as THREE.Mesh).isMesh) {
+                    const mesh = child as THREE.Mesh;
+                    if (!mesh.material || (Array.isArray(mesh.material) && mesh.material.length === 0)) {
+                        mesh.material = new THREE.MeshStandardMaterial({
+                            color: color,
+                            roughness: 0.7,
+                            metalness: 0.2
+                        });
+                    }
+                }
+            });
+        };
+
+        const carFiles = ['Car_06.fbx', 'Car_13.fbx', 'Car_16.fbx', 'Car_19.fbx', 'Futuristic_Car_1.fbx', 'Van.fbx'];
+        for (const file of carFiles) {
+            try {
+                const car = await this.fbxLoader.loadAsync(cityPath + file);
+                ensureMaterials(car, 0xffffff);
+                car.scale.set(1.5, 1.5, 1.5);
+                car.name = 'city_car';
+                this.cityObstacleModels.push(car);
+            } catch (e) { console.error(`Failed to load ${file}:`, e); }
+        }
+
+        const buildingFiles = ['Eco_Building_Grid.fbx', 'Regular_Building_TwistedTower_Large.fbx', 'Billboard_2x1_03.fbx', 'Bus_Stop_02.fbx'];
+        for (const file of buildingFiles) {
+            try {
+                const bld = await this.fbxLoader.loadAsync(cityPath + file);
+                ensureMaterials(bld, 0xaaaaaa);
+                bld.scale.set(15, 15, 15);
+                this.cityDecorationModels.push(bld);
+            } catch (e) { console.error(`Failed to load ${file}:`, e); }
+        }
+
+        const roadFiles = ['road_001.fbx', 'road_003.fbx', 'road_009.fbx'];
+        for (const file of roadFiles) {
+            try {
+                const road = await this.fbxLoader.loadAsync(cityPath + file);
+                ensureMaterials(road, 0x444444);
+                road.scale.set(10, 10, 10);
+                this.cityGroundModels.push(road);
+            } catch (e) { console.error(`Failed to load ${file}:`, e); }
+        }
     }
 
     private initPlayer() {
@@ -444,30 +509,45 @@ export class Game {
             return;
         }
 
-        if (!this.groundModel) return;
         const gridZ = 15; const gridX = 5;
         for (let z = 0; z < gridZ; z++) {
             for (let x = -Math.floor(gridX / 2); x <= Math.floor(gridX / 2); x++) {
                 this.spawnGroundSegment(x * this.tileWidth, z * this.tileSize);
             }
         }
-        for (let i = 0; i < 40; i++) this.createCloud(i * 350);
+        if (this.currentBiom !== 'city') {
+            for (let i = 0; i < 40; i++) this.createCloud(i * 350);
+        }
     }
 
     private spawnGroundSegment(x: number, z: number) {
-        if (!this.groundModel) return;
-        const segment = this.groundModel.clone();
+        let segment: THREE.Group | null = null;
+        if (this.currentBiom === 'city') {
+            if (this.cityGroundModels.length > 0) {
+                segment = this.cityGroundModels[Math.floor(Math.random() * this.cityGroundModels.length)].clone();
+            }
+        } else {
+            if (this.groundModel) segment = this.groundModel.clone();
+        }
+
+        if (!segment) return;
+
         segment.position.set(x, 0, z);
         this.scene.add(segment);
         this.grounds.push(segment);
 
-        const density = 5;
-        for (let i = 0; i < density; i++) this.spawnDecoration(x, z);
-        if (x === 0) {
-            this.spawnPathBorder(this.laneWidth * 1.5, z);
-            this.spawnPathBorder(-this.laneWidth * 1.5, z);
+        if (this.currentBiom === 'city') {
+            const density = 2;
+            for (let i = 0; i < density; i++) this.spawnCityDecoration(x, z);
+        } else {
+            const density = 5;
+            for (let i = 0; i < density; i++) this.spawnDecoration(x, z);
+            if (x === 0) {
+                this.spawnPathBorder(this.laneWidth * 1.5, z);
+                this.spawnPathBorder(-this.laneWidth * 1.5, z);
+            }
+            if (Math.abs(x) >= this.tileWidth * 2) this.spawnMountain(x, z);
         }
-        if (Math.abs(x) >= this.tileWidth * 2) this.spawnMountain(x, z);
     }
 
     private spawnPathBorder(x: number, z: number) {
@@ -501,14 +581,49 @@ export class Game {
         this.scene.add(deco); this.decorations.push(deco);
     }
 
+    private spawnCityDecoration(centerX: number, centerZ: number) {
+        if (this.cityDecorationModels.length === 0) return;
+        const deco = this.cityDecorationModels[Math.floor(Math.random() * this.cityDecorationModels.length)].clone();
+        const decoX = centerX + (Math.random() - 0.5) * this.tileWidth;
+        const decoZ = centerZ + (Math.random() - 0.5) * this.tileSize;
+
+        if (Math.abs(decoX) < this.laneWidth * 1.4) return;
+
+        deco.position.set(decoX, 0, decoZ);
+        deco.rotation.y = Math.random() * Math.PI * 2;
+        this.scene.add(deco); this.decorations.push(deco);
+    }
+
     private spawnObstacle() {
         if (!this.gameActive || this.isIntro) return;
         if (this.currentBiom === 'sky') {
             if (this.skyObstacleModels.length === 0) return;
             const lane = (Math.floor(Math.random() * 3) - 1) * this.laneWidth;
-            const obstacle = this.skyObstacleModels[Math.floor(Math.random() * this.skyObstacleModels.length)].clone();
-            obstacle.position.set(lane, Math.random() * 10 - 5, this.player.position.z + 550);
+            const sourceModel = this.skyObstacleModels[Math.floor(Math.random() * this.skyObstacleModels.length)];
+            const obstacle = sourceModel.clone();
+            const yPos = Math.random() * 10 - 5;
+            obstacle.position.set(lane, yPos, this.player.position.z + 550);
+
+
+            const animations = this.skyModelAnimations.get(sourceModel.name);
+            if (animations && animations.length > 0) {
+                const mixer = new THREE.AnimationMixer(obstacle);
+                const action = mixer.clipAction(animations[0]);
+                action.play();
+                this.objectMixers.push(mixer);
+            }
+
             obstacle.rotation.y = Math.random() * Math.PI * 2;
+            this.scene.add(obstacle); this.obstacles.push(obstacle);
+
+
+            if (Math.random() < 0.3) this.spawnSkyDecoration();
+        } else if (this.currentBiom === 'city') {
+            if (this.cityObstacleModels.length === 0) return;
+            const lane = (Math.floor(Math.random() * 3) - 1) * this.laneWidth;
+            const obstacle = this.cityObstacleModels[Math.floor(Math.random() * this.cityObstacleModels.length)].clone();
+            obstacle.position.set(lane, 0, this.player.position.z + 800);
+            obstacle.rotation.y = Math.PI;
             this.scene.add(obstacle); this.obstacles.push(obstacle);
         } else {
             if (this.treeModels.length === 0) return;
@@ -522,14 +637,32 @@ export class Game {
     }
 
     private spawnSkyDecoration() {
-        if (this.skyDecoModels.length === 0) return;
-        const deco = this.skyDecoModels[Math.floor(Math.random() * this.skyDecoModels.length)].clone();
-        const offsetX = (Math.random() - 0.5) * 100;
-        const offsetY = Math.random() * 30 - 10;
-        deco.position.set(offsetX, offsetY, this.player.position.z + 400 + Math.random() * 200);
+        if (this.skyObstacleModels.length === 0) return;
+        const sourceModel = this.skyObstacleModels[Math.floor(Math.random() * this.skyObstacleModels.length)];
+        const deco = sourceModel.clone();
+
+        const side = Math.random() < 0.5 ? 1 : -1;
+        const offsetX = side * (30 + Math.random() * 100);
+        const offsetY = (Math.random() - 0.5) * 60;
+        const offsetZ = 400 + Math.random() * 300;
+
+        deco.position.set(this.player.position.x + offsetX, offsetY, this.player.position.z + offsetZ);
+        deco.scale.multiplyScalar(0.5 + Math.random() * 1.5);
         deco.rotation.y = Math.random() * Math.PI * 2;
-        this.scene.add(deco); this.decorations.push(deco);
+
+
+        const animations = this.skyModelAnimations.get(sourceModel.name);
+        if (animations && animations.length > 0) {
+            const mixer = new THREE.AnimationMixer(deco);
+            const action = mixer.clipAction(animations[0]);
+            action.play();
+            this.objectMixers.push(mixer);
+        }
+
+        this.scene.add(deco);
+        this.decorations.push(deco);
     }
+
 
     private createCloud(z: number, isPortal: boolean = false) {
         const group = new THREE.Group();
@@ -556,20 +689,47 @@ export class Game {
         this.targetX = this.currentLane * this.laneWidth;
     }
 
+
+    private startTransition(zOffset: number = 0, targetY: number | null = null) {
+        this.isIntro = true;
+        this.transitionStartZ = this.player.position.z;
+
+        if (targetY !== null) {
+            this.targetAltitude = targetY;
+        } else {
+            this.altitude = 150.0;
+            this.targetAltitude = 8.5;
+        }
+
+        this.player.position.y = this.altitude;
+
+        const baseZ = this.player.position.z + zOffset;
+
+
+        for (let i = 0; i < 50; i++) {
+            const zPos = baseZ + 200 + (Math.random() * 800);
+            const group = new THREE.Group();
+            const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
+
+            for (let j = 0; j < 12; j++) {
+                const geo = new THREE.SphereGeometry(Math.random() * 50 + 20, 6, 6);
+                const part = new THREE.Mesh(geo, mat);
+                part.position.set((Math.random() - 0.5) * 150, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60);
+                group.add(part);
+            }
+            group.position.set((Math.random() - 0.5) * 80, this.altitude, zPos);
+            this.scene.add(group);
+            this.clouds.push(group);
+        }
+    }
+
     private startGame() {
         this.refreshPlayerModel();
         this.gameActive = true;
-        this.isIntro = true;
-        this.introPhase = 'diving';
         this.score = 0;
         this.distance = 0;
         this.speed = 0.8;
-        this.altitude = 150.0;
         this.currentBiom = 'intro';
-
-        this.player.position.set(0, this.altitude, 0);
-        this.currentLane = 0;
-        this.targetX = 0;
 
         this.obstacles.forEach(o => this.scene.remove(o));
         this.decorations.forEach(d => this.scene.remove(d));
@@ -577,16 +737,13 @@ export class Game {
         this.clouds.forEach(c => this.scene.remove(c));
 
         this.obstacles = []; this.decorations = []; this.grounds = []; this.clouds = [];
+        this.objectMixers = [];
 
         this.scene.background = new THREE.Color(0xa6d0ff);
         this.scene.fog = new THREE.FogExp2(0xa6d0ff, 0.0001);
 
-
-        for (let i = 0; i < 40; i++) {
-            this.createCloud(400 + (Math.random() * 400), true);
-        }
-
-        for (let i = 0; i < 10; i++) this.createCloud(i * 50);
+        this.startTransition(0, 8.5);
+        this.altitude = 150.0;
 
         const hud = document.getElementById('hud'); if (hud) hud.classList.remove('hidden');
         const appView = document.getElementById('app'); if (appView) appView.style.visibility = 'visible';
@@ -620,7 +777,35 @@ export class Game {
             this.initEnvironment();
         }
         this.isIntro = false;
-        this.introPhase = 'done';
+    }
+
+    private switchToSkyBiom() {
+        this.currentBiom = 'sky';
+        this.scene.background = new THREE.Color(0x1e3a5f);
+        this.scene.fog = new THREE.FogExp2(0x1e3a5f, 0.0002);
+
+
+        this.grounds.forEach(g => this.scene.remove(g));
+        this.decorations.forEach(d => this.scene.remove(d));
+        this.grounds = [];
+        this.decorations = [];
+
+        this.isIntro = false;
+    }
+
+    private switchToCityBiom() {
+        this.currentBiom = 'city';
+        this.scene.background = new THREE.Color(0x87ceeb);
+        this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.0001);
+
+
+        this.grounds.forEach(g => this.scene.remove(g));
+        this.decorations.forEach(d => this.scene.remove(d));
+        this.grounds = [];
+        this.decorations = [];
+
+        this.initEnvironment();
+        this.isIntro = false;
     }
 
 
@@ -628,6 +813,17 @@ export class Game {
         requestAnimationFrame(() => this.animate());
         const delta = this.wingClock.getDelta();
         const t = performance.now() * 0.001;
+
+
+        for (let i = this.objectMixers.length - 1; i >= 0; i--) {
+            const mixer = this.objectMixers[i];
+            const root = mixer.getRoot() as THREE.Object3D;
+            if (root.parent) {
+                mixer.update(delta);
+            } else {
+                this.objectMixers.splice(i, 1);
+            }
+        }
 
         if (this.wingMesh && this.activeWingId !== 'none') {
             const isGlider = (this.activeWingId === 'superman' || this.activeWingId === 'elytra');
@@ -656,31 +852,50 @@ export class Game {
         if (this.gameActive) {
 
             if (this.isIntro) {
-                if (this.player.position.z < 350) {
 
-                    this.altitude = 150.0;
-                    this.pigMesh.rotation.x = 0;
-
-
-                    if (this.player.position.z > 250 && this.grounds.length === 0) {
-                        this.initEnvironment();
-                    }
-                } else if (this.altitude > 8.5) {
-
-                    this.altitude -= 1.5;
-                    this.pigMesh.rotation.x = 0.4;
+                const altitudeStep = 0.5;
+                if (Math.abs(this.altitude - this.targetAltitude) > altitudeStep) {
+                    this.altitude += (this.targetAltitude > this.altitude ? altitudeStep : -altitudeStep);
+                    this.pigMesh.rotation.x = (this.targetAltitude > this.altitude ? -0.1 : 0.3);
                 } else {
-
-                    this.altitude = 8.5;
+                    this.altitude = this.targetAltitude;
                     this.pigMesh.rotation.x *= 0.9;
-                    if (this.player.position.z > 700) {
+                }
+
+
+                const progress = this.player.position.z - this.transitionStartZ;
+
+                if (progress > 300 && progress < 500) {
+
+                    if (this.currentBiom === 'transitioning_to_sky') {
+                        this.scene.background = new THREE.Color(0x3a5a7f);
+                        this.scene.fog = new THREE.FogExp2(0x3a5a7f, 0.00015);
+                    } else if (this.currentBiom === 'transitioning_to_city') {
+                        this.scene.background = new THREE.Color(0x87ceeb);
+                        this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.00015);
+                    }
+                }
+
+                if (progress > 700) {
+
+                    if (this.currentBiom === 'intro') {
                         this.switchToNatureBiom();
+                    } else if (this.currentBiom === 'transitioning_to_sky') {
+                        this.switchToSkyBiom();
+                    } else if (this.currentBiom === 'transitioning_to_city') {
+                        this.switchToCityBiom();
                     }
                 }
             }
 
-            if (this.currentBiom === 'clouds' && this.score >= 5000) {
-                this.currentBiom = 'sky';
+            if (this.currentBiom === 'clouds' && this.score >= 200) {
+                this.currentBiom = 'transitioning_to_city';
+                this.startTransition(0, 8.5);
+            }
+
+            if (this.currentBiom === 'city' && this.score >= 400) {
+                this.currentBiom = 'transitioning_to_sky';
+                this.startTransition(0, 8.5);
             }
 
             this.player.position.y = this.altitude;
@@ -697,7 +912,7 @@ export class Game {
             if (scoreElem) scoreElem.innerText = `SCORE: ${Math.floor(this.score).toString().padStart(5, '0')}`;
             if (distElem) distElem.innerText = `DIST: ${Math.floor(this.distance)}m`;
 
-            if (this.currentBiom === 'clouds') {
+            if (this.currentBiom === 'clouds' || this.currentBiom === 'city') {
                 const gridWidth = 5;
                 this.grounds.sort((a: THREE.Group, b: THREE.Group) => a.position.z - b.position.z);
                 while (this.grounds.length > 0 && this.grounds[0].position.z < this.player.position.z - this.tileSize * 2.0) {
@@ -706,12 +921,17 @@ export class Game {
                     batch.forEach(g => {
                         g.position.z = lastZ + this.tileSize;
                         this.grounds.push(g);
-                        for (let i = 0; i < 4; i++) this.spawnDecoration(g.position.x, g.position.z);
-                        if (g.position.x === 0) {
-                            this.spawnPathBorder(this.laneWidth * 1.5, g.position.z);
-                            this.spawnPathBorder(-this.laneWidth * 1.5, g.position.z);
+
+                        if (this.currentBiom === 'city') {
+                            for (let i = 0; i < 2; i++) this.spawnCityDecoration(g.position.x, g.position.z);
+                        } else {
+                            for (let i = 0; i < 4; i++) this.spawnDecoration(g.position.x, g.position.z);
+                            if (g.position.x === 0) {
+                                this.spawnPathBorder(this.laneWidth * 1.5, g.position.z);
+                                this.spawnPathBorder(-this.laneWidth * 1.5, g.position.z);
+                            }
+                            if (Math.abs(g.position.x) >= this.tileWidth * 2) this.spawnMountain(g.position.x, g.position.z);
                         }
-                        if (Math.abs(g.position.x) >= this.tileWidth * 2) this.spawnMountain(g.position.x, g.position.z);
                     });
                 }
             }
@@ -738,6 +958,9 @@ export class Game {
                     if (this.currentBiom === 'sky') {
                         oBox = new THREE.Box3().setFromObject(obs);
                         oBox.expandByScalar(-2.5);
+                    } else if (this.currentBiom === 'city') {
+                        oBox = new THREE.Box3().setFromObject(obs);
+                        oBox.expandByScalar(-1.5);
                     } else {
                         const trunkCenter = new THREE.Vector3();
                         obs.getWorldPosition(trunkCenter);
