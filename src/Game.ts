@@ -20,7 +20,6 @@ export class Game {
     private clouds: THREE.Group[] = [];
     private grounds: THREE.Group[] = [];
 
-
     private wingMesh: THREE.Group | null = null;
     private wingMixer: THREE.AnimationMixer | null = null;
     private wingClock: THREE.Clock = new THREE.Clock();
@@ -35,7 +34,6 @@ export class Game {
     private laneWidth: number = 7.0;
     private currentLane: number = 0;
     private targetX: number = 0;
-
 
     private pigArchetypes: { [pigId: string]: string } = {
         'lowpoly': 'small', 'minecraft': 'small', 'piglet': 'small',
@@ -77,7 +75,6 @@ export class Game {
     private textureLoader: THREE.TextureLoader = new THREE.TextureLoader();
     private currentBiom: 'clouds' | 'sky' | 'city' | 'nature' | 'intro' | 'transitioning_to_sky' | 'transitioning_to_city' = 'sky';
 
-
     private treeModels: THREE.Group[] = [];
     private decorationModels: THREE.Group[] = [];
     private flowerModels: THREE.Group[] = [];
@@ -96,6 +93,18 @@ export class Game {
     private tileWidth: number = 0;
     private transitionStartZ: number = 0;
     private targetAltitude: number = 8.5;
+
+    private isMouseDown: boolean = false;
+    private isShiftPressed: boolean = false;
+    private isPPressed: boolean = false;
+    private isPaused: boolean = false;
+    private rotationAngle: number = 0;
+    private rotationSpeed: number = Math.PI / 2;
+    private mousePosition: { x: number, y: number } = { x: 0, y: 0 };
+    private cameraOriginalY: number = 10;
+    private isRotating: boolean = false;
+    private rotationProgress: number = 0;
+    private rotationDuration: number = 2;
 
     constructor() {
         this.scene = new THREE.Scene();
@@ -119,10 +128,96 @@ export class Game {
             this.initEnvironment();
         }).catch(err => console.error("Error loading assets:", err));
 
+        this.setupControls();
+        this.animate();
+    }
+
+    private setupControls() {
         window.addEventListener('resize', () => this.onResize());
         window.addEventListener('keydown', (e: KeyboardEvent) => this.onKeyDown(e));
+        window.addEventListener('keyup', (e: KeyboardEvent) => this.onKeyUp(e));
 
-        this.animate();
+        this.renderer.domElement.addEventListener('mousedown', (e: MouseEvent) => this.onMouseDown(e));
+        this.renderer.domElement.addEventListener('mousemove', (e: MouseEvent) => this.onMouseMove(e));
+        this.renderer.domElement.addEventListener('mouseup', () => this.onMouseUp());
+        this.renderer.domElement.addEventListener('mouseleave', () => this.onMouseUp());
+    }
+
+    private onMouseDown(e: MouseEvent) {
+        if (e.button === 0) {
+            this.isMouseDown = true;
+            this.mousePosition.x = e.clientX;
+            this.mousePosition.y = e.clientY;
+        }
+    }
+
+    private onMouseMove(e: MouseEvent) {
+        if (this.isMouseDown && this.gameActive && !this.isPaused) {
+            const deltaY = e.clientY - this.mousePosition.y;
+            this.cameraOriginalY += deltaY * 0.01;
+            this.cameraOriginalY = Math.max(5, Math.min(20, this.cameraOriginalY));
+            this.mousePosition.x = e.clientX;
+            this.mousePosition.y = e.clientY;
+        }
+    }
+
+    private onMouseUp() {
+        this.isMouseDown = false;
+    }
+
+    private onKeyDown(e: KeyboardEvent) {
+        if (e.code === 'KeyP') {
+            if (!this.isPPressed) {
+                this.isPPressed = true;
+                this.togglePause();
+            }
+            return;
+        }
+
+        if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+            if (!this.isShiftPressed && !this.isRotating && this.gameActive && !this.isPaused) {
+                this.isShiftPressed = true;
+                this.isRotating = true;
+                this.rotationProgress = 0;
+                this.rotationAngle = 0;
+            }
+            return;
+        }
+
+        if (this.isPaused) return;
+
+        if (!this.gameActive && (e.code === 'Space' || e.code === 'Enter')) {
+            this.startGame();
+            return;
+        }
+
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') this.currentLane = Math.min(1, this.currentLane + 1);
+        else if (e.code === 'ArrowRight' || e.code === 'KeyD') this.currentLane = Math.max(-1, this.currentLane - 1);
+
+        this.targetX = this.currentLane * this.laneWidth;
+    }
+
+    private onKeyUp(e: KeyboardEvent) {
+        if (e.code === 'KeyP') {
+            this.isPPressed = false;
+        } else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+            this.isShiftPressed = false;
+        }
+    }
+
+    private togglePause() {
+        if (!this.gameActive) return;
+
+        this.isPaused = !this.isPaused;
+
+        const pauseElement = document.getElementById('pause');
+        if (pauseElement) {
+            if (this.isPaused) {
+                pauseElement.classList.remove('hidden');
+            } else {
+                pauseElement.classList.add('hidden');
+            }
+        }
     }
 
     private async loadNatureAssets() {
@@ -270,18 +365,41 @@ export class Game {
             try {
                 const car = await this.fbxLoader.loadAsync(cityPath + file);
                 ensureMaterials(car, 0xffffff);
-                car.scale.set(1.5, 1.5, 1.5);
+                car.scale.set(3.5, 3.5, 3.5);
                 car.name = 'city_car';
                 this.cityObstacleModels.push(car);
             } catch (e) { console.error(`Failed to load ${file}:`, e); }
         }
 
-        const buildingFiles = ['Eco_Building_Grid.fbx', 'Regular_Building_TwistedTower_Large.fbx', 'Billboard_2x1_03.fbx', 'Bus_Stop_02.fbx'];
+        const buildingFiles = [
+            'Eco_Building_Grid.fbx', 'Eco_Building_Slope.fbx', 'Eco_Building_Terrace.fbx',
+            'Regular_Building_TwistedTower_Large.fbx',
+            'Billboard_2x1_03.fbx', 'Billboard_2x1_05.fbx',
+            'Billboard_4x1_03.fbx', 'Billboard_4x1_04.fbx',
+            'Bus_Stop_02.fbx',
+            'Fountain_03.fbx',
+            'Signboard_01.fbx',
+            'Trash_Can_04.fbx', 'Trash_Can_05.fbx',
+            'traffic_light_001.fbx', 'traffic_light_002.fbx',
+            'Bush_06.fbx', 'Bush_10.fbx', 'Palm_03.fbx'
+        ];
+
         for (const file of buildingFiles) {
             try {
                 const bld = await this.fbxLoader.loadAsync(cityPath + file);
                 ensureMaterials(bld, 0xaaaaaa);
-                bld.scale.set(15, 15, 15);
+
+                if (file.includes('Trash') || file.includes('traffic') || file.includes('Sign')) {
+                    bld.scale.set(0.5, 0.5, 0.5);
+                } else if (file.includes('Bush') || file.includes('Palm')) {
+                    bld.scale.set(1.0, 1.0, 1.0);
+                } else if (file === 'Bus_Stop_02.fbx') {
+                    bld.scale.set(1.0, 1.0, 1.0);
+                } else {
+                    bld.scale.set(1.5, 1.5, 1.5);
+                }
+
+                bld.name = file;
                 this.cityDecorationModels.push(bld);
             } catch (e) { console.error(`Failed to load ${file}:`, e); }
         }
@@ -291,7 +409,7 @@ export class Game {
             try {
                 const road = await this.fbxLoader.loadAsync(cityPath + file);
                 ensureMaterials(road, 0x444444);
-                road.scale.set(10, 10, 10);
+                road.scale.set(4.0, 4.0, 4.0);
                 this.cityGroundModels.push(road);
             } catch (e) { console.error(`Failed to load ${file}:`, e); }
         }
@@ -525,6 +643,7 @@ export class Game {
         if (this.currentBiom === 'city') {
             if (this.cityGroundModels.length > 0) {
                 segment = this.cityGroundModels[Math.floor(Math.random() * this.cityGroundModels.length)].clone();
+                segment.position.set(x, -1.0, z);
             }
         } else {
             if (this.groundModel) segment = this.groundModel.clone();
@@ -583,19 +702,49 @@ export class Game {
 
     private spawnCityDecoration(centerX: number, centerZ: number) {
         if (this.cityDecorationModels.length === 0) return;
+
         const deco = this.cityDecorationModels[Math.floor(Math.random() * this.cityDecorationModels.length)].clone();
         const decoX = centerX + (Math.random() - 0.5) * this.tileWidth;
         const decoZ = centerZ + (Math.random() - 0.5) * this.tileSize;
 
-        if (Math.abs(decoX) < this.laneWidth * 1.4) return;
+        if (Math.abs(decoX) < 25) {
+            return;
+        }
 
         deco.position.set(decoX, 0, decoZ);
         deco.rotation.y = Math.random() * Math.PI * 2;
-        this.scene.add(deco); this.decorations.push(deco);
+
+        if (deco.name.includes('Trash') || deco.name.includes('traffic')) {
+        } else {
+            const scaleVariation = 0.8 + Math.random() * 0.4;
+            deco.scale.multiplyScalar(scaleVariation);
+        }
+
+        this.scene.add(deco);
+        this.decorations.push(deco);
     }
 
     private spawnObstacle() {
-        if (!this.gameActive || this.isIntro) return;
+        if (!this.gameActive || this.isIntro || this.isPaused) return;
+
+        if (this.currentBiom === 'city') {
+            if (this.cityObstacleModels.length === 0) return;
+
+            if (Math.random() < 0.05) {
+                const numCars = Math.random() < 0.4 ? 2 : 1;
+
+                for (let i = 0; i < numCars; i++) {
+                    const lane = (Math.floor(Math.random() * 3) - 1) * this.laneWidth;
+                    const obstacle = this.cityObstacleModels[Math.floor(Math.random() * this.cityObstacleModels.length)].clone();
+                    obstacle.position.set(lane, 1.5, this.player.position.z + 600 + (i * 15));
+                    obstacle.rotation.y = Math.PI;
+                    this.scene.add(obstacle);
+                    this.obstacles.push(obstacle);
+                }
+            }
+            return;
+        }
+
         if (this.currentBiom === 'sky') {
             if (this.skyObstacleModels.length === 0) return;
             const lane = (Math.floor(Math.random() * 3) - 1) * this.laneWidth;
@@ -603,7 +752,6 @@ export class Game {
             const obstacle = sourceModel.clone();
             const yPos = Math.random() * 10 - 5;
             obstacle.position.set(lane, yPos, this.player.position.z + 550);
-
 
             const animations = this.skyModelAnimations.get(sourceModel.name);
             if (animations && animations.length > 0) {
@@ -616,15 +764,7 @@ export class Game {
             obstacle.rotation.y = Math.random() * Math.PI * 2;
             this.scene.add(obstacle); this.obstacles.push(obstacle);
 
-
             if (Math.random() < 0.3) this.spawnSkyDecoration();
-        } else if (this.currentBiom === 'city') {
-            if (this.cityObstacleModels.length === 0) return;
-            const lane = (Math.floor(Math.random() * 3) - 1) * this.laneWidth;
-            const obstacle = this.cityObstacleModels[Math.floor(Math.random() * this.cityObstacleModels.length)].clone();
-            obstacle.position.set(lane, 0, this.player.position.z + 800);
-            obstacle.rotation.y = Math.PI;
-            this.scene.add(obstacle); this.obstacles.push(obstacle);
         } else {
             if (this.treeModels.length === 0) return;
             const lane = (Math.floor(Math.random() * 3) - 1) * this.laneWidth;
@@ -650,7 +790,6 @@ export class Game {
         deco.scale.multiplyScalar(0.5 + Math.random() * 1.5);
         deco.rotation.y = Math.random() * Math.PI * 2;
 
-
         const animations = this.skyModelAnimations.get(sourceModel.name);
         if (animations && animations.length > 0) {
             const mixer = new THREE.AnimationMixer(deco);
@@ -662,7 +801,6 @@ export class Game {
         this.scene.add(deco);
         this.decorations.push(deco);
     }
-
 
     private createCloud(z: number, isPortal: boolean = false) {
         const group = new THREE.Group();
@@ -680,16 +818,6 @@ export class Game {
         this.scene.add(group); this.clouds.push(group);
     }
 
-    private onKeyDown(e: KeyboardEvent) {
-        if (!this.gameActive && (e.code === 'Space' || e.code === 'Enter')) {
-            this.startGame(); return;
-        }
-        if (e.code === 'ArrowLeft' || e.code === 'KeyA') this.currentLane = Math.min(1, this.currentLane + 1);
-        else if (e.code === 'ArrowRight' || e.code === 'KeyD') this.currentLane = Math.max(-1, this.currentLane - 1);
-        this.targetX = this.currentLane * this.laneWidth;
-    }
-
-
     private startTransition(zOffset: number = 0, targetY: number | null = null) {
         this.isIntro = true;
         this.transitionStartZ = this.player.position.z;
@@ -704,7 +832,6 @@ export class Game {
         this.player.position.y = this.altitude;
 
         const baseZ = this.player.position.z + zOffset;
-
 
         for (let i = 0; i < 50; i++) {
             const zPos = baseZ + 200 + (Math.random() * 800);
@@ -726,6 +853,7 @@ export class Game {
     private startGame() {
         this.refreshPlayerModel();
         this.gameActive = true;
+        this.isPaused = false;
         this.score = 0;
         this.distance = 0;
         this.speed = 0.8;
@@ -747,11 +875,14 @@ export class Game {
 
         const hud = document.getElementById('hud'); if (hud) hud.classList.remove('hidden');
         const appView = document.getElementById('app'); if (appView) appView.style.visibility = 'visible';
-    }
 
+        const pauseElement = document.getElementById('pause');
+        if (pauseElement) pauseElement.classList.add('hidden');
+    }
 
     private gameOver(): void {
         this.gameActive = false;
+        this.isPaused = false;
         const gameOverElement = document.getElementById('game-over');
         if (gameOverElement) gameOverElement.classList.remove('hidden');
         const finalScoreElem = document.getElementById('final-score');
@@ -784,7 +915,6 @@ export class Game {
         this.scene.background = new THREE.Color(0x1e3a5f);
         this.scene.fog = new THREE.FogExp2(0x1e3a5f, 0.0002);
 
-
         this.grounds.forEach(g => this.scene.remove(g));
         this.decorations.forEach(d => this.scene.remove(d));
         this.grounds = [];
@@ -798,7 +928,6 @@ export class Game {
         this.scene.background = new THREE.Color(0x87ceeb);
         this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.0001);
 
-
         this.grounds.forEach(g => this.scene.remove(g));
         this.decorations.forEach(d => this.scene.remove(d));
         this.grounds = [];
@@ -808,12 +937,10 @@ export class Game {
         this.isIntro = false;
     }
 
-
     private animate() {
         requestAnimationFrame(() => this.animate());
         const delta = this.wingClock.getDelta();
         const t = performance.now() * 0.001;
-
 
         for (let i = this.objectMixers.length - 1; i >= 0; i--) {
             const mixer = this.objectMixers[i];
@@ -849,10 +976,27 @@ export class Game {
         }
         if (this.wingMixer) this.wingMixer.update(delta);
 
-        if (this.gameActive) {
+        if (this.isRotating) {
+            this.rotationProgress += delta;
+            const progress = Math.min(this.rotationProgress / this.rotationDuration, 1);
 
+            const easedProgress = this.easeInOutCubic(progress);
+            this.rotationAngle = easedProgress * Math.PI * 2;
+
+            this.pigMesh.rotation.x = Math.sin(this.rotationAngle) * Math.PI;
+
+            if (progress >= 1) {
+                this.isRotating = false;
+                this.pigMesh.rotation.x = 0;
+                this.rotationAngle = 0;
+                this.rotationProgress = 0;
+            }
+        }
+
+        this.camera.position.y = this.cameraOriginalY;
+
+        if (this.gameActive && !this.isPaused) {
             if (this.isIntro) {
-
                 const altitudeStep = 0.5;
                 if (Math.abs(this.altitude - this.targetAltitude) > altitudeStep) {
                     this.altitude += (this.targetAltitude > this.altitude ? altitudeStep : -altitudeStep);
@@ -862,11 +1006,9 @@ export class Game {
                     this.pigMesh.rotation.x *= 0.9;
                 }
 
-
                 const progress = this.player.position.z - this.transitionStartZ;
 
                 if (progress > 300 && progress < 500) {
-
                     if (this.currentBiom === 'transitioning_to_sky') {
                         this.scene.background = new THREE.Color(0x3a5a7f);
                         this.scene.fog = new THREE.FogExp2(0x3a5a7f, 0.00015);
@@ -877,7 +1019,6 @@ export class Game {
                 }
 
                 if (progress > 700) {
-
                     if (this.currentBiom === 'intro') {
                         this.switchToNatureBiom();
                     } else if (this.currentBiom === 'transitioning_to_sky') {
@@ -917,7 +1058,7 @@ export class Game {
                 this.grounds.sort((a: THREE.Group, b: THREE.Group) => a.position.z - b.position.z);
                 while (this.grounds.length > 0 && this.grounds[0].position.z < this.player.position.z - this.tileSize * 2.0) {
                     const batch = this.grounds.splice(0, gridWidth);
-                    const lastZ = this.grounds[this.grounds.length - 1].position.z;
+                    const lastZ = this.grounds[this.grounds.length - 1]?.position.z || 0;
                     batch.forEach(g => {
                         g.position.z = lastZ + this.tileSize;
                         this.grounds.push(g);
@@ -952,15 +1093,19 @@ export class Game {
             if (!this.isIntro) {
                 const pBox = new THREE.Box3().setFromObject(this.pigMesh);
                 pBox.expandByScalar(-0.3);
+
                 for (let i = this.obstacles.length - 1; i >= 0; i--) {
                     const obs = this.obstacles[i];
                     let oBox: THREE.Box3;
+
                     if (this.currentBiom === 'sky') {
                         oBox = new THREE.Box3().setFromObject(obs);
                         oBox.expandByScalar(-2.5);
                     } else if (this.currentBiom === 'city') {
                         oBox = new THREE.Box3().setFromObject(obs);
-                        oBox.expandByScalar(-1.5);
+                        oBox.expandByScalar(-0.5);
+                        oBox.min.y = this.altitude - 3;
+                        oBox.max.y = this.altitude + 1;
                     } else {
                         const trunkCenter = new THREE.Vector3();
                         obs.getWorldPosition(trunkCenter);
@@ -970,6 +1115,7 @@ export class Game {
                             new THREE.Vector3(trunkCenter.x + trunkRadius, 1000, trunkCenter.z + trunkRadius)
                         );
                     }
+
                     if (pBox.intersectsBox(oBox)) this.gameOver();
                     if (obs.position.z < this.player.position.z - 200) {
                         this.scene.remove(obs); this.obstacles.splice(i, 1);
@@ -978,5 +1124,9 @@ export class Game {
             }
         }
         this.renderer.render(this.scene, this.camera);
+    }
+
+    private easeInOutCubic(t: number): number {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
     }
 }

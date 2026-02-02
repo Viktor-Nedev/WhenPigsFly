@@ -30,7 +30,6 @@
             transition: visibility 0.5s ease;
         }
 
-
         #main-start-screen {
             position: fixed;
             top: 0;
@@ -319,7 +318,6 @@
             animation: slideOutToLeft 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
 
-
         @keyframes slideInFromRight {
             0% {
                 opacity: 0;
@@ -397,6 +395,276 @@
             visibility: visible;
             transform: translateY(0) scale(1);
         }
+
+        /* Стилове за контроли - подобрени */
+        .controls-section {
+            margin-top: 25px;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(255, 107, 203, 0.1), rgba(107, 191, 255, 0.1));
+            border-radius: 15px;
+            border: 2px solid rgba(255, 107, 203, 0.3);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .controls-section h4 {
+            font-family: 'Luckiest Guy', cursive;
+            color: #ff6bcb;
+            font-size: 22px;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+            letter-spacing: 1px;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .control-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-item:hover {
+            background: linear-gradient(90deg, rgba(255, 107, 203, 0.15), rgba(107, 191, 255, 0.15));
+            border-color: rgba(255, 107, 203, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 203, 0.2);
+        }
+
+        .control-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.1),
+                    transparent);
+            transition: left 0.5s;
+        }
+
+        .control-item:hover::before {
+            left: 100%;
+        }
+
+        .control-label {
+            font-size: 16px;
+            color: white;
+            font-weight: 500;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Luckiest Guy', cursive;
+            letter-spacing: 1px;
+        }
+
+        .control-label::before {
+            font-size: 18px;
+        }
+
+        .control-key {
+            background: linear-gradient(135deg, #ff6bcb, #6bf);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-family: 'Orbitron', monospace;
+            font-size: 14px;
+            font-weight: bold;
+            min-width: 120px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .control-key:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(255, 107, 203, 0.4);
+            border-color: white;
+        }
+
+        .control-key.editing {
+            background: linear-gradient(135deg, #6bf, #ff6bcb);
+            border-color: white;
+            animation: pulseEditing 1s infinite;
+            box-shadow: 0 0 20px rgba(107, 191, 255, 0.8);
+        }
+
+        @keyframes pulseEditing {
+
+            0%,
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 20px rgba(107, 191, 255, 0.8);
+            }
+
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 30px rgba(107, 191, 255, 1);
+            }
+        }
+
+        .control-key::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.1),
+                    transparent);
+            transform: rotate(45deg);
+            transition: all 0.5s;
+        }
+
+        .control-key:hover::after {
+            left: 100%;
+        }
+
+        .control-buttons {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 15px;
+        }
+
+        .control-btn {
+            background: linear-gradient(135deg, #ff6bcb, #ff1493);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-family: 'Luckiest Guy', cursive;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(255, 20, 147, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 200px;
+            justify-content: center;
+            letter-spacing: 1px;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(255, 20, 147, 0.4);
+        }
+
+        .control-btn.reset {
+            background: linear-gradient(135deg, #6bf, #0066cc);
+        }
+
+        .control-btn.reset:hover {
+            box-shadow: 0 8px 16px rgba(107, 191, 255, 0.4);
+        }
+
+        .control-btn.save {
+            background: linear-gradient(135deg, #00cc66, #00994d);
+        }
+
+        .control-btn.save:hover {
+            box-shadow: 0 8px 16px rgba(0, 204, 102, 0.4);
+        }
+
+        /* По-големи иконки */
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-icon svg {
+            width: 28px;
+            height: 28px;
+            fill: white;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover .btn-icon svg {
+            transform: scale(1.1) rotate(5deg);
+            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+        }
+
+        .nav-btn.active .btn-icon svg {
+            fill: #ff6bcb;
+            filter: drop-shadow(0 0 10px #ff6bcb);
+        }
+
+        /* Специална иконка за Chest */
+        .pig-icon-overlay {
+            position: absolute;
+            font-size: 14px;
+            top: -5px;
+            right: -5px;
+            color: #ffd700;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+            z-index: 1;
+        }
+
+        /* Стилове за настройки бутони */
+        .settings-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .settings-buttons button {
+            background: linear-gradient(135deg, #ff6bcb, #ff1493);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-family: 'Luckiest Guy', cursive;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(255, 20, 147, 0.3);
+            min-width: 180px;
+            letter-spacing: 1px;
+        }
+
+        .settings-buttons button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(255, 20, 147, 0.4);
+        }
+
+        .settings-buttons button#reset-progress {
+            background: linear-gradient(135deg, #ff4444, #cc0000);
+        }
+
+        .settings-buttons button#reset-progress:hover {
+            box-shadow: 0 8px 16px rgba(255, 68, 68, 0.4);
+        }
     </style>
 </head>
 
@@ -464,27 +732,51 @@
                 <div class="right-column">
                     <div class="nav-buttons">
                         <button class="nav-btn active" id="home-btn">
-                            <span class="btn-icon">🏠</span>
+                            <span class="btn-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                    <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                                </svg>
+                            </span>
                             <span class="btn-text">HOME</span>
                         </button>
 
                         <button class="nav-btn" id="locker-btn">
-                            <span class="btn-icon">👕</span>
+                            <span class="btn-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                    <path
+                                        d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
+                                </svg>
+                            </span>
                             <span class="btn-text">LOCKER</span>
                         </button>
 
                         <button class="nav-btn" id="shop-btn">
-                            <span class="btn-icon">🛒</span>
+                            <span class="btn-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                    <path
+                                        d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z" />
+                                </svg>
+                            </span>
                             <span class="btn-text">SHOP</span>
                         </button>
 
                         <button class="nav-btn" id="chest-btn">
-                            <span class="btn-icon">🎁</span>
+                            <span class="btn-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                    <path
+                                        d="M5 4h14v2H5V4zm0 10h4v6H5v-6zm10 0h4v6h-4v-6zM5 8h14v2H5V8zm0 4h14v2H5v-2z" />
+                                </svg>
+                            </span>
                             <span class="btn-text">CHEST</span>
                         </button>
 
                         <button class="nav-btn" id="settings-btn">
-                            <span class="btn-icon">⚙️</span>
+                            <span class="btn-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                                    <path
+                                        d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+                                </svg>
+                            </span>
                             <span class="btn-text">SETTINGS</span>
                         </button>
                     </div>
@@ -510,7 +802,6 @@
                                     <div class="stat-card-label">Play Time</div>
                                 </div>
                             </div>
-
                         </div>
 
                         <div class="submenu" id="locker-submenu">
@@ -589,6 +880,7 @@
 
                         <div class="submenu" id="settings-submenu">
                             <h3>GAME SETTINGS</h3>
+
                             <div class="setting-group">
                                 <button id="how-to-play-btn" class="how-to-play-btn">
                                     <span class="btn-icon">📖</span>
@@ -625,13 +917,31 @@
                                 </div>
 
                                 <div class="setting-group">
-                                    <label>Controls</label>
+                                    <label>Controls Type</label>
                                     <div class="setting-controls">
                                         <select id="controls">
                                             <option value="arrows" selected>Arrow Keys</option>
                                             <option value="ad">A/D Keys</option>
                                             <option value="both">Both</option>
                                         </select>
+                                    </div>
+                                </div>
+
+                                <!-- Подобрена секция за контроли -->
+                                <div class="controls-section">
+                                    <h4> CUSTOMIZE CONTROLS</h4>
+                                    <div class="controls-grid" id="controls-grid">
+                                        <!-- Controls will be added dynamically -->
+                                    </div>
+                                    <div class="control-buttons">
+                                        <button id="reset-controls-btn" class="control-btn reset">
+                                            <span></span>
+                                            <span>Reset to Default</span>
+                                        </button>
+                                        <button id="save-controls-btn" class="control-btn save">
+                                            <span></span>
+                                            <span>Save Controls</span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -659,7 +969,6 @@
                                             <div class="obstacles-demo">
                                                 <div class="control-key">A / D</div>
                                             </div>
-
                                         </div>
 
                                         <div class="instruction-step">
@@ -667,7 +976,6 @@
                                             <div class="step-content">
                                                 <h3>AVOID OBSTACLES</h3>
                                                 <p>Dodge cars, trees, and other obstacles to keep flying!</p>
-
                                             </div>
                                         </div>
 
@@ -676,11 +984,8 @@
                                             <div class="step-content">
                                                 <h3>COLLECT COINS</h3>
                                                 <p><strong>Coins = Score</strong> <br> Increase your score to collect
-                                                    coins!
-                                                </p>
-
+                                                    coins!</p>
                                             </div>
-
                                             <div class="obstacles-demo">
                                                 <span class="coin">🪙</span>
                                             </div>
@@ -773,7 +1078,227 @@
                 }
             });
 
+            // Инициализация на контролите
+            initializeControls();
         });
+
+        function initializeControls() {
+            const controlsGrid = document.getElementById('controls-grid');
+            const resetControlsBtn = document.getElementById('reset-controls-btn');
+            const saveControlsBtn = document.getElementById('save-controls-btn');
+            const saveSettingsBtn = document.getElementById('save-settings');
+
+            // Дефинирани контроли по подразбиране
+            const defaultControls = {
+                'Move Left': ['ArrowLeft', 'KeyA'],
+                'Move Right': ['ArrowRight', 'KeyD'],
+                'Pause Game': ['KeyP'],
+                'Rotate Pig': ['ShiftLeft', 'ShiftRight'],
+                'Camera Control': 'Left Mouse Button'
+            };
+
+            // Зареждане на запазени контроли от localStorage
+            let savedControls = JSON.parse(localStorage.getItem('pigGameControls') || '{}');
+            let currentControls = { ...defaultControls, ...savedControls };
+
+            // Променлива за проследяване на редактиране
+            let editingControl = null;
+
+            // Попълване на мрежата с контроли
+            function populateControlsGrid() {
+                controlsGrid.innerHTML = '';
+
+                Object.entries(currentControls).forEach(([action, keys]) => {
+                    const controlItem = document.createElement('div');
+                    controlItem.className = 'control-item';
+
+                    const label = document.createElement('div');
+                    label.className = 'control-label';
+
+                    // Добавяне на различни иконки за различните контроли
+                    let icon = '🎮';
+                    if (action.includes('Move')) icon = '↔';
+                    if (action.includes('Pause')) icon = '⏸';
+                    if (action.includes('Rotate')) icon = '';
+                    if (action.includes('Camera')) icon = '';
+
+                    label.innerHTML = `<span>${icon}</span><span>${action}</span>`;
+
+                    const keyDiv = document.createElement('div');
+                    keyDiv.className = 'control-key';
+
+                    if (typeof keys === 'string') {
+                        // За не-клавишни контроли (като мишка)
+                        keyDiv.textContent = keys;
+                        keyDiv.style.cursor = 'default';
+                    } else {
+                        // За клавишни контроли
+                        const keysText = keys.map(key => {
+                            // Преобразуване на key code в четим формат
+                            return key
+                                .replace('Key', '')
+                                .replace('Arrow', '→')
+                                .replace('Left', '←')
+                                .replace('Right', '→')
+                                .replace('Digit', '')
+                                .replace('ShiftLeft', 'L Shift')
+                                .replace('ShiftRight', 'R Shift')
+                                .replace('Space', 'Space');
+                        }).join(' / ');
+
+                        keyDiv.textContent = keysText;
+                        keyDiv.dataset.action = action;
+                        keyDiv.dataset.keys = JSON.stringify(keys);
+
+                        keyDiv.addEventListener('click', function (e) {
+                            e.stopPropagation();
+                            if (editingControl === action) {
+                                // Вече се редактира
+                                return;
+                            }
+
+                            // Започване на редактиране
+                            editingControl = action;
+                            keyDiv.classList.add('editing');
+                            keyDiv.textContent = 'Press any key...';
+                            keyDiv.style.background = 'linear-gradient(135deg, #ff1493, #6bf)';
+
+                            // Временно добавяне на event listener за клавиатура
+                            const keyListener = function (e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+
+                                // Проверка дали клавишът вече се използва
+                                const newKey = e.code;
+                                const isAlreadyUsed = Object.values(currentControls)
+                                    .some(k => Array.isArray(k) && k.includes(newKey));
+
+                                if (isAlreadyUsed && newKey !== keys[0]) {
+                                    alert('⚠️ This key is already assigned to another action!');
+                                    keyDiv.classList.remove('editing');
+                                    keyDiv.textContent = keysText;
+                                    keyDiv.style.background = '';
+                                    editingControl = null;
+                                    document.removeEventListener('keydown', keyListener);
+                                    return;
+                                }
+
+                                // Запазване на новия клавиш
+                                if (Array.isArray(keys)) {
+                                    currentControls[action] = [newKey];
+                                }
+
+                                keyDiv.classList.remove('editing');
+
+                                // Показване на новия клавиш
+                                const displayKey = newKey
+                                    .replace('Key', '')
+                                    .replace('Arrow', '→')
+                                    .replace('Left', '←')
+                                    .replace('Right', '→')
+                                    .replace('Digit', '')
+                                    .replace('ShiftLeft', 'L Shift')
+                                    .replace('ShiftRight', 'R Shift')
+                                    .replace('Space', 'Space');
+
+                                keyDiv.textContent = displayKey;
+                                keyDiv.style.background = 'linear-gradient(135deg, #00cc66, #6bf)';
+
+                                // Временен зелен ефект при успешно запазване
+                                setTimeout(() => {
+                                    keyDiv.style.background = '';
+                                }, 1000);
+
+                                editingControl = null;
+                                document.removeEventListener('keydown', keyListener);
+
+                                // Автоматично запазване
+                                saveControls();
+                            };
+
+                            document.addEventListener('keydown', keyListener, { once: true });
+
+                            // Отмяна на редактиране при клик извън
+                            const cancelEdit = function (e) {
+                                if (!keyDiv.contains(e.target) && editingControl === action) {
+                                    keyDiv.classList.remove('editing');
+                                    keyDiv.textContent = keysText;
+                                    keyDiv.style.background = '';
+                                    editingControl = null;
+                                    document.removeEventListener('keydown', keyListener);
+                                    document.removeEventListener('click', cancelEdit);
+                                }
+                            };
+
+                            setTimeout(() => {
+                                document.addEventListener('click', cancelEdit);
+                            }, 0);
+                        });
+                    }
+
+                    controlItem.appendChild(label);
+                    controlItem.appendChild(keyDiv);
+                    controlsGrid.appendChild(controlItem);
+                });
+            }
+
+            // Запазване на контролите
+            function saveControls() {
+                localStorage.setItem('pigGameControls', JSON.stringify(currentControls));
+
+                // Обновяване на дисплея
+                populateControlsGrid();
+
+                // Показване на съобщение за успешно запазване
+                const originalText = saveControlsBtn.innerHTML;
+                saveControlsBtn.innerHTML = '<span></span><span>Controls Saved!</span>';
+                saveControlsBtn.style.background = 'linear-gradient(135deg, #00cc66, #00994d)';
+
+                setTimeout(() => {
+                    saveControlsBtn.innerHTML = originalText;
+                    saveControlsBtn.style.background = '';
+                }, 1500);
+            }
+
+            // Ресет на контролите към стойности по подразбиране
+            resetControlsBtn.addEventListener('click', function () {
+                if (confirm(' Reset all controls to default settings?\nThis cannot be undone!')) {
+                    currentControls = { ...defaultControls };
+                    saveControls();
+
+                    // Показване на съобщение за успешен ресет
+                    const originalText = resetControlsBtn.innerHTML;
+                    resetControlsBtn.innerHTML = '<span></span><span>Reset Complete!</span>';
+                    resetControlsBtn.style.background = 'linear-gradient(135deg, #6bf, #0066cc)';
+
+                    setTimeout(() => {
+                        resetControlsBtn.innerHTML = originalText;
+                        resetControlsBtn.style.background = '';
+                    }, 1500);
+                }
+            });
+
+            // Запазване на контроли с бутона за контроли
+            saveControlsBtn.addEventListener('click', saveControls);
+
+            // Запазване на всички настройки
+            saveSettingsBtn.addEventListener('click', function () {
+                saveControls();
+
+                // Показване на съобщение за успешно запазване
+                const originalText = saveSettingsBtn.textContent;
+                saveSettingsBtn.textContent = 'All Settings Saved!';
+                saveSettingsBtn.style.background = 'linear-gradient(135deg, #00cc66, #00994d)';
+
+                setTimeout(() => {
+                    saveSettingsBtn.textContent = originalText;
+                    saveSettingsBtn.style.background = '';
+                }, 1500);
+            });
+
+            // Инициализация
+            populateControlsGrid();
+        }
     </script>
 
     <div id="insufficient-funds-modal" class="modal hidden">
