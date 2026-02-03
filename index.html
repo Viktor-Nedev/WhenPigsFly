@@ -396,7 +396,7 @@
             transform: translateY(0) scale(1);
         }
 
-        /* Стилове за контроли - подобрени */
+
         .controls-section {
             margin-top: 25px;
             padding: 20px;
@@ -591,7 +591,7 @@
             box-shadow: 0 8px 16px rgba(0, 204, 102, 0.4);
         }
 
-        /* По-големи иконки */
+
         .btn-icon {
             width: 32px;
             height: 32px;
@@ -618,7 +618,7 @@
             filter: drop-shadow(0 0 10px #ff6bcb);
         }
 
-        /* Специална иконка за Chest */
+
         .pig-icon-overlay {
             position: absolute;
             font-size: 14px;
@@ -629,7 +629,7 @@
             z-index: 1;
         }
 
-        /* Стилове за настройки бутони */
+
         .settings-buttons {
             display: flex;
             justify-content: center;
@@ -927,11 +927,11 @@
                                     </div>
                                 </div>
 
-                                <!-- Подобрена секция за контроли -->
+
                                 <div class="controls-section">
                                     <h4> CUSTOMIZE CONTROLS</h4>
                                     <div class="controls-grid" id="controls-grid">
-                                        <!-- Controls will be added dynamically -->
+
                                     </div>
                                     <div class="control-buttons">
                                         <button id="reset-controls-btn" class="control-btn reset">
@@ -1078,7 +1078,7 @@
                 }
             });
 
-            // Инициализация на контролите
+
             initializeControls();
         });
 
@@ -1088,7 +1088,7 @@
             const saveControlsBtn = document.getElementById('save-controls-btn');
             const saveSettingsBtn = document.getElementById('save-settings');
 
-            // Дефинирани контроли по подразбиране
+
             const defaultControls = {
                 'Move Left': ['ArrowLeft', 'KeyA'],
                 'Move Right': ['ArrowRight', 'KeyD'],
@@ -1097,14 +1097,14 @@
                 'Camera Control': 'Left Mouse Button'
             };
 
-            // Зареждане на запазени контроли от localStorage
+
             let savedControls = JSON.parse(localStorage.getItem('pigGameControls') || '{}');
             let currentControls = { ...defaultControls, ...savedControls };
 
-            // Променлива за проследяване на редактиране
+
             let editingControl = null;
 
-            // Попълване на мрежата с контроли
+
             function populateControlsGrid() {
                 controlsGrid.innerHTML = '';
 
@@ -1115,7 +1115,7 @@
                     const label = document.createElement('div');
                     label.className = 'control-label';
 
-                    // Добавяне на различни иконки за различните контроли
+
                     let icon = '🎮';
                     if (action.includes('Move')) icon = '↔';
                     if (action.includes('Pause')) icon = '⏸';
@@ -1128,13 +1128,13 @@
                     keyDiv.className = 'control-key';
 
                     if (typeof keys === 'string') {
-                        // За не-клавишни контроли (като мишка)
+
                         keyDiv.textContent = keys;
                         keyDiv.style.cursor = 'default';
                     } else {
-                        // За клавишни контроли
+
                         const keysText = keys.map(key => {
-                            // Преобразуване на key code в четим формат
+
                             return key
                                 .replace('Key', '')
                                 .replace('Arrow', '→')
@@ -1153,22 +1153,22 @@
                         keyDiv.addEventListener('click', function (e) {
                             e.stopPropagation();
                             if (editingControl === action) {
-                                // Вече се редактира
+
                                 return;
                             }
 
-                            // Започване на редактиране
+
                             editingControl = action;
                             keyDiv.classList.add('editing');
                             keyDiv.textContent = 'Press any key...';
                             keyDiv.style.background = 'linear-gradient(135deg, #ff1493, #6bf)';
 
-                            // Временно добавяне на event listener за клавиатура
+
                             const keyListener = function (e) {
                                 e.preventDefault();
                                 e.stopPropagation();
 
-                                // Проверка дали клавишът вече се използва
+
                                 const newKey = e.code;
                                 const isAlreadyUsed = Object.values(currentControls)
                                     .some(k => Array.isArray(k) && k.includes(newKey));
@@ -1183,14 +1183,14 @@
                                     return;
                                 }
 
-                                // Запазване на новия клавиш
+
                                 if (Array.isArray(keys)) {
                                     currentControls[action] = [newKey];
                                 }
 
                                 keyDiv.classList.remove('editing');
 
-                                // Показване на новия клавиш
+
                                 const displayKey = newKey
                                     .replace('Key', '')
                                     .replace('Arrow', '→')
@@ -1204,7 +1204,7 @@
                                 keyDiv.textContent = displayKey;
                                 keyDiv.style.background = 'linear-gradient(135deg, #00cc66, #6bf)';
 
-                                // Временен зелен ефект при успешно запазване
+
                                 setTimeout(() => {
                                     keyDiv.style.background = '';
                                 }, 1000);
@@ -1212,13 +1212,13 @@
                                 editingControl = null;
                                 document.removeEventListener('keydown', keyListener);
 
-                                // Автоматично запазване
+
                                 saveControls();
                             };
 
                             document.addEventListener('keydown', keyListener, { once: true });
 
-                            // Отмяна на редактиране при клик извън
+
                             const cancelEdit = function (e) {
                                 if (!keyDiv.contains(e.target) && editingControl === action) {
                                     keyDiv.classList.remove('editing');
@@ -1242,14 +1242,14 @@
                 });
             }
 
-            // Запазване на контролите
+
             function saveControls() {
                 localStorage.setItem('pigGameControls', JSON.stringify(currentControls));
 
-                // Обновяване на дисплея
+
                 populateControlsGrid();
 
-                // Показване на съобщение за успешно запазване
+
                 const originalText = saveControlsBtn.innerHTML;
                 saveControlsBtn.innerHTML = '<span></span><span>Controls Saved!</span>';
                 saveControlsBtn.style.background = 'linear-gradient(135deg, #00cc66, #00994d)';
@@ -1260,13 +1260,13 @@
                 }, 1500);
             }
 
-            // Ресет на контролите към стойности по подразбиране
+
             resetControlsBtn.addEventListener('click', function () {
                 if (confirm(' Reset all controls to default settings?\nThis cannot be undone!')) {
                     currentControls = { ...defaultControls };
                     saveControls();
 
-                    // Показване на съобщение за успешен ресет
+
                     const originalText = resetControlsBtn.innerHTML;
                     resetControlsBtn.innerHTML = '<span></span><span>Reset Complete!</span>';
                     resetControlsBtn.style.background = 'linear-gradient(135deg, #6bf, #0066cc)';
@@ -1278,14 +1278,14 @@
                 }
             });
 
-            // Запазване на контроли с бутона за контроли
+
             saveControlsBtn.addEventListener('click', saveControls);
 
-            // Запазване на всички настройки
+
             saveSettingsBtn.addEventListener('click', function () {
                 saveControls();
 
-                // Показване на съобщение за успешно запазване
+
                 const originalText = saveSettingsBtn.textContent;
                 saveSettingsBtn.textContent = 'All Settings Saved!';
                 saveSettingsBtn.style.background = 'linear-gradient(135deg, #00cc66, #00994d)';
@@ -1296,7 +1296,7 @@
                 }, 1500);
             });
 
-            // Инициализация
+
             populateControlsGrid();
         }
     </script>

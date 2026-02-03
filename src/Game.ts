@@ -32,8 +32,12 @@ export class Game {
     private isIntro: boolean = false;
     private altitude: number = 8.0;
     private laneWidth: number = 7.0;
+    private cityLaneWidth: number = 9.5;
     private currentLane: number = 0;
     private targetX: number = 0;
+
+
+
 
     private pigArchetypes: { [pigId: string]: string } = {
         'lowpoly': 'small', 'minecraft': 'small', 'piglet': 'small',
@@ -86,8 +90,14 @@ export class Game {
     private skyModelAnimations: Map<string, THREE.AnimationClip[]> = new Map();
 
     private cityGroundModels: THREE.Group[] = [];
+    private cityMainRoadModels: THREE.Group[] = [];
+    private citySideGroundModels: THREE.Group[] = [];
     private cityObstacleModels: THREE.Group[] = [];
     private cityDecorationModels: THREE.Group[] = [];
+    private cityEdgeDecorationModels: THREE.Group[] = [];
+    private cityLaneLastCarZ: number[] = [-Infinity, -Infinity, -Infinity];
+    private cityRockLastZ: number[] = [-Infinity, -Infinity];
+    private cityRockMaterial: THREE.MeshLambertMaterial | null = null;
 
     private tileSize: number = 0;
     private tileWidth: number = 0;
@@ -99,7 +109,6 @@ export class Game {
     private isPPressed: boolean = false;
     private isPaused: boolean = false;
     private rotationAngle: number = 0;
-    private rotationSpeed: number = Math.PI / 2;
     private mousePosition: { x: number, y: number } = { x: 0, y: 0 };
     private cameraOriginalY: number = 10;
     private isRotating: boolean = false;
@@ -194,7 +203,8 @@ export class Game {
         if (e.code === 'ArrowLeft' || e.code === 'KeyA') this.currentLane = Math.min(1, this.currentLane + 1);
         else if (e.code === 'ArrowRight' || e.code === 'KeyD') this.currentLane = Math.max(-1, this.currentLane - 1);
 
-        this.targetX = this.currentLane * this.laneWidth;
+        const laneWidth = (this.currentBiom === 'city') ? this.cityLaneWidth : this.laneWidth;
+        this.targetX = this.currentLane * laneWidth;
     }
 
     private onKeyUp(e: KeyboardEvent) {
@@ -360,12 +370,33 @@ export class Game {
             });
         };
 
+        const normalizeCityGroundTile = (tile: THREE.Group) => {
+            if (this.tileWidth <= 0 || this.tileSize <= 0) return;
+
+            const preBox = new THREE.Box3().setFromObject(tile);
+            const size = new THREE.Vector3();
+            preBox.getSize(size);
+            if (size.x <= 0.0001 || size.z <= 0.0001) return;
+
+            const sx = this.tileWidth / size.x;
+            const sz = this.tileSize / size.z;
+            const sy = Math.min(sx, sz);
+            tile.scale.set(tile.scale.x * sx, tile.scale.y * sy, tile.scale.z * sz);
+
+            const box = new THREE.Box3().setFromObject(tile);
+            const center = new THREE.Vector3();
+            box.getCenter(center);
+            tile.position.x -= center.x;
+            tile.position.z -= center.z;
+            tile.position.y -= box.min.y;
+        };
+
         const carFiles = ['Car_06.fbx', 'Car_13.fbx', 'Car_16.fbx', 'Car_19.fbx', 'Futuristic_Car_1.fbx', 'Van.fbx'];
         for (const file of carFiles) {
             try {
                 const car = await this.fbxLoader.loadAsync(cityPath + file);
                 ensureMaterials(car, 0xffffff);
-                car.scale.set(3.5, 3.5, 3.5);
+                car.scale.set(4.3, 4.3, 4.3);
                 car.name = 'city_car';
                 this.cityObstacleModels.push(car);
             } catch (e) { console.error(`Failed to load ${file}:`, e); }
@@ -374,14 +405,13 @@ export class Game {
         const buildingFiles = [
             'Eco_Building_Grid.fbx', 'Eco_Building_Slope.fbx', 'Eco_Building_Terrace.fbx',
             'Regular_Building_TwistedTower_Large.fbx',
-            'Billboard_2x1_03.fbx', 'Billboard_2x1_05.fbx',
-            'Billboard_4x1_03.fbx', 'Billboard_4x1_04.fbx',
             'Bus_Stop_02.fbx',
             'Fountain_03.fbx',
             'Signboard_01.fbx',
             'Trash_Can_04.fbx', 'Trash_Can_05.fbx',
-            'traffic_light_001.fbx', 'traffic_light_002.fbx',
-            'Bush_06.fbx', 'Bush_10.fbx', 'Palm_03.fbx'
+            'Bush_06.fbx', 'Bush_07.fbx', 'Bush_10.fbx', 'Palm_03.fbx',
+            'Graffiti_03.fbx',
+            'Spotlight_01.fbx', 'Spotlight_02.fbx'
         ];
 
         for (const file of buildingFiles) {
@@ -390,29 +420,42 @@ export class Game {
                 ensureMaterials(bld, 0xaaaaaa);
 
                 if (file.includes('Trash') || file.includes('traffic') || file.includes('Sign')) {
-                    bld.scale.set(0.5, 0.5, 0.5);
+                    bld.scale.set(0.95, 0.95, 0.95);
                 } else if (file.includes('Bush') || file.includes('Palm')) {
-                    bld.scale.set(1.0, 1.0, 1.0);
+                    bld.scale.set(1.55, 1.55, 1.55);
                 } else if (file === 'Bus_Stop_02.fbx') {
-                    bld.scale.set(1.0, 1.0, 1.0);
+                    bld.scale.set(1.15, 1.15, 1.15);
                 } else {
                     bld.scale.set(1.5, 1.5, 1.5);
                 }
 
                 bld.name = file;
                 this.cityDecorationModels.push(bld);
+
+                if (file.includes('Bush') || file.includes('Palm') || file.includes('Graffiti') || file.includes('Spotlight')) {
+                    this.cityEdgeDecorationModels.push(bld);
+                }
             } catch (e) { console.error(`Failed to load ${file}:`, e); }
         }
 
-        const roadFiles = ['road_001.fbx', 'road_003.fbx', 'road_009.fbx'];
-        for (const file of roadFiles) {
+        const mainRoadFiles = ['road_001.fbx'];
+        const sideRoadFiles = ['road_013.fbx', 'road_019.fbx', 'road_020.fbx', 'road_022.fbx'];
+        const sideTileFiles = ['Set_B_Tiles_01.fbx', 'Set_B_Tiles_04.fbx', 'Set_B_Tiles_05.fbx', 'Set_B_Tiles_06.fbx', 'Set_B_Tiles_09.fbx'];
+
+        const loadCityGround = async (file: string, fallbackColor: number, target: THREE.Group[]) => {
             try {
-                const road = await this.fbxLoader.loadAsync(cityPath + file);
-                ensureMaterials(road, 0x444444);
-                road.scale.set(4.0, 4.0, 4.0);
-                this.cityGroundModels.push(road);
+                const tile = await this.fbxLoader.loadAsync(cityPath + file);
+                ensureMaterials(tile, fallbackColor);
+                normalizeCityGroundTile(tile);
+                tile.name = file;
+                target.push(tile);
+                this.cityGroundModels.push(tile);
             } catch (e) { console.error(`Failed to load ${file}:`, e); }
-        }
+        };
+
+        for (const file of mainRoadFiles) await loadCityGround(file, 0x444444, this.cityMainRoadModels);
+        for (const file of sideRoadFiles) await loadCityGround(file, 0x444444, this.citySideGroundModels);
+        for (const file of sideTileFiles) await loadCityGround(file, 0x4f8a5b, this.citySideGroundModels);
     }
 
     private initPlayer() {
@@ -641,9 +684,13 @@ export class Game {
     private spawnGroundSegment(x: number, z: number) {
         let segment: THREE.Group | null = null;
         if (this.currentBiom === 'city') {
-            if (this.cityGroundModels.length > 0) {
+            const isMainRoadColumn = Math.abs(x) < 0.001;
+            if (isMainRoadColumn && this.cityMainRoadModels.length > 0) {
+                segment = this.cityMainRoadModels[0].clone();
+            } else if (this.citySideGroundModels.length > 0) {
+                segment = this.citySideGroundModels[Math.floor(Math.random() * this.citySideGroundModels.length)].clone();
+            } else if (this.cityGroundModels.length > 0) {
                 segment = this.cityGroundModels[Math.floor(Math.random() * this.cityGroundModels.length)].clone();
-                segment.position.set(x, -1.0, z);
             }
         } else {
             if (this.groundModel) segment = this.groundModel.clone();
@@ -658,6 +705,10 @@ export class Game {
         if (this.currentBiom === 'city') {
             const density = 2;
             for (let i = 0; i < density; i++) this.spawnCityDecoration(x, z);
+            if (Math.abs(x) >= this.tileWidth * 2 - 0.01) {
+                this.spawnCityEdgeDecoration(x, z);
+                this.spawnCityRockBorder(x, z);
+            }
         } else {
             const density = 5;
             for (let i = 0; i < density; i++) this.spawnDecoration(x, z);
@@ -687,6 +738,38 @@ export class Game {
         this.scene.add(mount); this.decorations.push(mount);
     }
 
+    private spawnCityRockBorder(x: number, z: number) {
+        if (!this.rockModelBig) return;
+        if (this.tileWidth <= 0 || this.tileSize <= 0) return;
+        if (Math.abs(x) < this.tileWidth * 2 - 0.01) return;
+
+        const side = x > 0 ? 1 : -1;
+        const sideIndex = side > 0 ? 1 : 0;
+        if (z - this.cityRockLastZ[sideIndex] < this.tileSize * 0.9) return;
+
+        if (!this.cityRockMaterial) {
+            this.cityRockMaterial = new THREE.MeshLambertMaterial({ color: 0x3f7a49 });
+        }
+
+        const count = 2;
+        for (let i = 0; i < count; i++) {
+            const rock = this.rockModelBig.clone();
+            rock.traverse((child: THREE.Object3D) => {
+                if ((child as THREE.Mesh).isMesh) {
+                    (child as THREE.Mesh).material = this.cityRockMaterial!;
+                }
+            });
+
+            const offsetX = side * (this.tileWidth * 0.9 + 240 + Math.random() * 260);
+            const offsetZ = (Math.random() - 0.5) * this.tileSize;
+            rock.position.set(x + offsetX, 0, z + offsetZ);
+            rock.scale.multiplyScalar(Math.random() * 10 + 18);
+            rock.rotation.y = Math.random() * Math.PI;
+            this.scene.add(rock); this.decorations.push(rock);
+        }
+        this.cityRockLastZ[sideIndex] = z;
+    }
+
     private spawnDecoration(centerX: number, centerZ: number) {
         if (this.decorationModels.length === 0) return;
         const models = [...this.decorationModels, ...this.treeModels];
@@ -702,23 +785,59 @@ export class Game {
 
     private spawnCityDecoration(centerX: number, centerZ: number) {
         if (this.cityDecorationModels.length === 0) return;
+        if (Math.abs(centerX) < 0.001) return;
 
         const deco = this.cityDecorationModels[Math.floor(Math.random() * this.cityDecorationModels.length)].clone();
-        const decoX = centerX + (Math.random() - 0.5) * this.tileWidth;
+        const side = centerX >= 0 ? 1 : -1;
+        let decoX = centerX + (Math.random() - 0.5) * this.tileWidth;
         const decoZ = centerZ + (Math.random() - 0.5) * this.tileSize;
 
-        if (Math.abs(decoX) < 25) {
+        const isVegetation = (deco.name.includes('Bush') || deco.name.includes('Palm'));
+        const isSmallProp = (
+            deco.name.includes('Trash') ||
+            deco.name.includes('Sign') ||
+            isVegetation
+        );
+
+        const roadClearHalfWidth = isSmallProp ? (this.cityLaneWidth * 1.75) : (this.cityLaneWidth * 2.2);
+        if (Math.abs(decoX) < roadClearHalfWidth) {
             return;
+        }
+
+        if (isSmallProp) {
+            if (isVegetation) {
+                decoX = side * (roadClearHalfWidth + 6.5 + Math.random() * 6.0);
+            } else {
+                decoX = side * (roadClearHalfWidth + 6.0 + Math.random() * 6.0);
+            }
         }
 
         deco.position.set(decoX, 0, decoZ);
         deco.rotation.y = Math.random() * Math.PI * 2;
 
-        if (deco.name.includes('Trash') || deco.name.includes('traffic')) {
-        } else {
-            const scaleVariation = 0.8 + Math.random() * 0.4;
-            deco.scale.multiplyScalar(scaleVariation);
-        }
+        const sideBoost = isSmallProp ? 1.35 : 1.0;
+        const scaleVariation = 0.95 + Math.random() * 0.25;
+        deco.scale.multiplyScalar(sideBoost * scaleVariation);
+
+        this.scene.add(deco);
+        this.decorations.push(deco);
+    }
+
+    private spawnCityEdgeDecoration(centerX: number, centerZ: number) {
+        if (this.cityEdgeDecorationModels.length === 0) return;
+        if (this.tileWidth <= 0 || this.tileSize <= 0) return;
+        if (Math.abs(centerX) < this.tileWidth * 1.9) return;
+
+        const side = centerX > 0 ? 1 : -1;
+        const source = this.cityEdgeDecorationModels[Math.floor(Math.random() * this.cityEdgeDecorationModels.length)];
+        const deco = source.clone();
+
+        const farX = centerX + side * (this.tileWidth * 0.55 + 40 + Math.random() * 70);
+        const z = centerZ + (Math.random() - 0.5) * this.tileSize;
+
+        deco.position.set(farX, 0, z);
+        deco.rotation.y = Math.random() * Math.PI * 2;
+        deco.scale.multiplyScalar(1.6 + Math.random() * 1.2);
 
         this.scene.add(deco);
         this.decorations.push(deco);
@@ -730,17 +849,40 @@ export class Game {
         if (this.currentBiom === 'city') {
             if (this.cityObstacleModels.length === 0) return;
 
-            if (Math.random() < 0.05) {
-                const numCars = Math.random() < 0.4 ? 2 : 1;
+            const lanes = [-1, 0, 1].sort(() => Math.random() - 0.5);
+            const numCars = Math.random() < 0.25 ? 2 : 1;
+            const carY = this.altitude - 2.1;
+            const spawnZ = this.player.position.z + 620 + Math.random() * 220;
+            const minLaneSpacingZ = 300;
+            const minAnyCarSpacingZ = 200;
 
-                for (let i = 0; i < numCars; i++) {
-                    const lane = (Math.floor(Math.random() * 3) - 1) * this.laneWidth;
-                    const obstacle = this.cityObstacleModels[Math.floor(Math.random() * this.cityObstacleModels.length)].clone();
-                    obstacle.position.set(lane, 1.5, this.player.position.z + 600 + (i * 15));
-                    obstacle.rotation.y = Math.PI;
-                    this.scene.add(obstacle);
-                    this.obstacles.push(obstacle);
+            const isLaneClear = (laneIndex: number, laneX: number, z: number) => {
+                if (z - this.cityLaneLastCarZ[laneIndex] < minLaneSpacingZ) return false;
+
+                for (const obs of this.obstacles) {
+                    if (obs.name !== 'city_car') continue;
+                    if (Math.abs(obs.position.z - z) < minAnyCarSpacingZ) return false;
+                    if (Math.abs(obs.position.x - laneX) > 0.1) continue;
+                    if (Math.abs(obs.position.z - z) < minLaneSpacingZ) return false;
                 }
+                return true;
+            };
+
+            let placed = 0;
+            for (let i = 0; i < lanes.length && placed < numCars; i++) {
+                const laneIndex = lanes[i] + 1;
+                const laneX = lanes[i] * this.cityLaneWidth;
+                if (!isLaneClear(laneIndex, laneX, spawnZ)) continue;
+
+                const obstacle = this.cityObstacleModels[Math.floor(Math.random() * this.cityObstacleModels.length)].clone();
+                obstacle.position.set(laneX, carY, spawnZ);
+                obstacle.rotation.y = Math.PI;
+                obstacle.name = 'city_car';
+
+                this.scene.add(obstacle);
+                this.obstacles.push(obstacle);
+                this.cityLaneLastCarZ[laneIndex] = spawnZ;
+                placed++;
             }
             return;
         }
@@ -904,6 +1046,7 @@ export class Game {
         this.currentBiom = 'clouds';
         this.scene.background = new THREE.Color(0x6db9ff);
         this.scene.fog = new THREE.FogExp2(0x6db9ff, 0.00008);
+        this.pigMesh.position.y = 0;
         if (this.grounds.length === 0) {
             this.initEnvironment();
         }
@@ -914,6 +1057,7 @@ export class Game {
         this.currentBiom = 'sky';
         this.scene.background = new THREE.Color(0x1e3a5f);
         this.scene.fog = new THREE.FogExp2(0x1e3a5f, 0.0002);
+        this.pigMesh.position.y = 0;
 
         this.grounds.forEach(g => this.scene.remove(g));
         this.decorations.forEach(d => this.scene.remove(d));
@@ -927,6 +1071,9 @@ export class Game {
         this.currentBiom = 'city';
         this.scene.background = new THREE.Color(0x87ceeb);
         this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.0001);
+        this.pigMesh.position.y = -1.5;
+        this.cityLaneLastCarZ = [-Infinity, -Infinity, -Infinity];
+        this.cityRockLastZ = [-Infinity, -Infinity];
 
         this.grounds.forEach(g => this.scene.remove(g));
         this.decorations.forEach(d => this.scene.remove(d));
@@ -1065,6 +1212,10 @@ export class Game {
 
                         if (this.currentBiom === 'city') {
                             for (let i = 0; i < 2; i++) this.spawnCityDecoration(g.position.x, g.position.z);
+                            if (Math.abs(g.position.x) >= this.tileWidth * 2 - 0.01) {
+                                this.spawnCityEdgeDecoration(g.position.x, g.position.z);
+                                this.spawnCityRockBorder(g.position.x, g.position.z);
+                            }
                         } else {
                             for (let i = 0; i < 4; i++) this.spawnDecoration(g.position.x, g.position.z);
                             if (g.position.x === 0) {
@@ -1088,7 +1239,8 @@ export class Game {
                 }
             });
 
-            if (Math.random() < 0.012) this.spawnObstacle();
+            const obstacleChance = (this.currentBiom === 'city') ? 0.1 : 0.012;
+            if (Math.random() < obstacleChance) this.spawnObstacle();
 
             if (!this.isIntro) {
                 const pBox = new THREE.Box3().setFromObject(this.pigMesh);
