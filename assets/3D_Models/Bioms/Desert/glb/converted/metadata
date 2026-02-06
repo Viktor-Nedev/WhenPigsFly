@@ -1,0 +1,209 @@
+{
+	"assetNamespace": "fab",
+	"listing":
+	{
+		"averageRating": 0,
+		"createdAt": "",
+		"description": "<p><strong><em>Ancient Egypt Temple Collection</em></strong></p><p>Contains 13 3D environment models:</p><ul><li><p>5 Egyptian Columns.</p></li><li><p>2 Walls.</p></li><li><p>1 Floor and 1 roof.</p></li><li><p>1 entrance staircase.</p></li><li><p>3 Mounds or Bases of Pyramids.</p></li></ul><p>They are models ready to be used in games, with realistic textures.</p>",
+		"isAiForbidden": false,
+		"isAiGenerated": false,
+		"lastUpdatedAt": "",
+		"listingType": "3d-model",
+		"media": "https://media.fab.com/image_previews/gallery_images/c483513c-3c59-445d-8b45-e63f2725175d/6723bacd-33b1-4692-8700-004f674057bb.jpg",
+		"publishedAt": "2025-11-01T16:20:13.708818Z",
+		"reviewCount": 0,
+		"thumbnail": "https://media.fab.com/image_previews/gallery_images/2e850742-1cd4-4de8-80d0-2640d8b5a4d5/72726672-184c-43fb-a372-8aaf690f2edc.png",
+		"title": "Ancient Egypt Temple Collection 3D model",
+		"uid": "378dbcb6-2686-43b1-8c94-6056081c892a",
+		"updatedAt": "",
+		"user":
+		{
+			"coverImageUrl": "",
+			"profileImageUrl": "https://cdn1.epicgames.com/fab/seller/o-bcrx3m7g6v34b9r9e5x8bfuccydyx5/profileImage/blob-500x500-ade15cb01f301d006176c86b9d836848.jpg",
+			"sellerName": "Ag72",
+			"uid": "06cf272d-6d81-490a-9db0-a96f0a2827c0"
+		},
+		"tags": [
+			{
+				"name": "Pbr",
+				"slug": "pbr",
+				"uid": "080edd3b-d10a-4f32-ace2-30f5baa480dc"
+			},
+			{
+				"name": "Midpoly",
+				"slug": "midpoly",
+				"uid": "0c2f9da3-ad95-4f55-ae1a-3a029e8020ba"
+			},
+			{
+				"name": "Blender",
+				"slug": "blender",
+				"uid": "141666cf-0a09-4718-85fa-f0d54884a525"
+			},
+			{
+				"name": "Stone",
+				"slug": "stone",
+				"uid": "3b7b9846-a26c-48e0-99e0-866350f162aa"
+			},
+			{
+				"name": "Civilization",
+				"slug": "civilization",
+				"uid": "3e9a9ff6-eea2-45a8-bbe4-d698ef5df850"
+			},
+			{
+				"name": "Modular",
+				"slug": "modular",
+				"uid": "3f9ccd49-dae7-45e2-bdb6-9e288855da06"
+			},
+			{
+				"name": "Rise",
+				"slug": "rise",
+				"uid": "51d907a5-9743-4487-b9d9-6f817b78406d"
+			},
+			{
+				"name": "Egyptian",
+				"slug": "egyptian",
+				"uid": "533aefbe-1624-4dbf-9102-131cfb634f66"
+			},
+			{
+				"name": "Desert",
+				"slug": "desert",
+				"uid": "63dcb670-a358-4a08-bc12-bdf050b93077"
+			},
+			{
+				"name": "Historical",
+				"slug": "historical",
+				"uid": "80a06e67-194b-4da6-89c7-4ef1e0c28184"
+			},
+			{
+				"name": "Environment",
+				"slug": "environment",
+				"uid": "8c584304-8d10-44ca-8982-685cae643973"
+			},
+			{
+				"name": "Realistic",
+				"slug": "realistic",
+				"uid": "93b0d3f1-a96c-4d68-9d44-69a313519e32"
+			},
+			{
+				"name": "Temple",
+				"slug": "temple",
+				"uid": "96297044-997c-4fe4-974c-78d602455aea"
+			},
+			{
+				"name": "Old",
+				"slug": "old",
+				"uid": "975b1521-db01-43ed-a939-c2c2da5027b1"
+			},
+			{
+				"name": "Stylized",
+				"slug": "stylized",
+				"uid": "b584e222-c5bf-43b3-b9ed-f937eaf169c1"
+			},
+			{
+				"name": "Egypt",
+				"slug": "egypt",
+				"uid": "b886cf27-11ee-4523-bc18-08838f5d34e1"
+			},
+			{
+				"name": "Wood",
+				"slug": "wood",
+				"uid": "bcd38165-4b32-484d-bce7-c6cdaf827f77"
+			},
+			{
+				"name": "Pyramid",
+				"slug": "pyramid",
+				"uid": "bd22d01b-96fd-4c22-904d-5a84929dcf77"
+			},
+			{
+				"name": "God",
+				"slug": "god",
+				"uid": "c57aa6f0-d756-4721-87ca-3e130ecea4f3"
+			},
+			{
+				"name": "Ambience",
+				"slug": "ambience",
+				"uid": "c58531ea-0937-47d6-8288-891ca084f402"
+			},
+			{
+				"name": "Excavation",
+				"slug": "excavation",
+				"uid": "d3138d4a-a658-4d40-a049-f04b37516cf4"
+			},
+			{
+				"name": "Ruin",
+				"slug": "ruin",
+				"uid": "d6f49c13-b481-4dd6-b32f-fef96826ab6c"
+			},
+			{
+				"name": "Ancient",
+				"slug": "ancient",
+				"uid": "f0419e2c-b888-4e2d-8713-61c203152231"
+			}
+		],
+		"category":
+		{
+			"name": "Historical",
+			"path": "environments/historical",
+			"slug": "environments--historical",
+			"uid": "b62b82e9-759a-4cee-b569-03095bb38580"
+		},
+		"assetFormats": [
+			{
+				"assetFormatType":
+				{
+					"name": "FBX",
+					"groupName": "3D Exchange Formats",
+					"code": "fbx",
+					"icon": "cube",
+					"extensions": [
+						"fbx"
+					]
+				}
+			},
+			{
+				"assetFormatType":
+				{
+					"name": "Additional files",
+					"groupName": "Other Formats",
+					"code": "additional-files",
+					"icon": "file",
+					"extensions": [
+						"zip"
+					]
+				}
+			},
+			{
+				"assetFormatType":
+				{
+					"name": "Converted Files",
+					"groupName": "",
+					"code": "converted-files",
+					"icon": "cube",
+					"extensions": [
+						"gltf",
+						"glb",
+						"usdz"
+					]
+				}
+			}
+		],
+		"_PluginMetas":
+		{
+			"apiDataVersion": "0.0.1",
+			"entitlementUid": "84499b1c-2378-4c73-b87c-3366273fb133",
+			"cacheSize": 0,
+			"downloaded": []
+		}
+	},
+	"target": "diskExport",
+	"quality": "",
+	"format": "glb",
+	"fileId": "49d1e152-1a8f-4ba5-9690-685a31e1b880",
+	"platformIncluded": "",
+	"distributionPointBaseUrls": [],
+	"distributionMethod": "",
+	"entitlementUid": "84499b1c-2378-4c73-b87c-3366273fb133",
+	"invertedNormal": false,
+	"isConverted": true,
+	"isQuixel": false
+}

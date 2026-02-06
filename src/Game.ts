@@ -16,7 +16,7 @@ export class Game {
     private player: THREE.Group = new THREE.Group();
     private pigMesh: THREE.Group = new THREE.Group();
     private obstacles: THREE.Group[] = [];
-    private decorations: THREE.Group[] = [];
+    private decorations: THREE.Object3D[] = [];
     private clouds: THREE.Group[] = [];
     private grounds: THREE.Group[] = [];
 
@@ -77,7 +77,7 @@ export class Game {
     private gltfLoader: GLTFLoader = new GLTFLoader();
     private fbxLoader: FBXLoader = new FBXLoader();
     private textureLoader: THREE.TextureLoader = new THREE.TextureLoader();
-    private currentBiom: 'clouds' | 'sky' | 'city' | 'nature' | 'intro' | 'transitioning_to_sky' | 'transitioning_to_city' = 'sky';
+    private currentBiom: 'clouds' | 'sky' | 'city' | 'desert' | 'nature' | 'intro' | 'transitioning_to_sky' | 'transitioning_to_city' | 'transitioning_to_desert' = 'sky';
 
     private treeModels: THREE.Group[] = [];
     private decorationModels: THREE.Group[] = [];
@@ -110,6 +110,17 @@ export class Game {
     private cityLaneLastCarZ: number[] = [-Infinity, -Infinity, -Infinity];
     private cityRockLastZ: number[] = [-Infinity, -Infinity];
     private cityRockMaterial: THREE.MeshLambertMaterial | null = null;
+
+    private desertGroundModels: THREE.Group[] = [];
+    private desertObstacleModels: THREE.Group[] = [];
+    private desertDecorationModels: THREE.Group[] = [];
+    private desertBorderModels: THREE.Group[] = [];
+    private desertBorderLastZ: number[] = [-Infinity, -Infinity];
+    private desertGroundTemplate: THREE.Group | null = null;
+    private desertObstacleLastZ: number[] = [-Infinity, -Infinity, -Infinity];
+    private desertPyramidGeo: THREE.CylinderGeometry | null = null;
+    private desertPyramidMat: THREE.MeshStandardMaterial | null = null;
+    private desertRockMaterial: THREE.MeshLambertMaterial | null = null;
 
     private skyCloudPartGeo: THREE.SphereGeometry | null = null;
     private skyCloudMat: THREE.MeshBasicMaterial | null = null;
@@ -148,6 +159,8 @@ export class Game {
             return this.loadSkyAssets();
         }).then(() => {
             return this.loadCityAssets();
+        }).then(() => {
+            return this.loadDesertAssets();
         }).then(() => {
             this.initEnvironment();
         }).catch(err => console.error("Error loading assets:", err));
@@ -526,6 +539,123 @@ export class Game {
         for (const file of sideTileFiles) await loadCityGround(file, 0x4f8a5b, this.citySideGroundModels);
     }
 
+    private async loadDesertAssets() {
+        this.desertDecorationModels = [];
+        this.desertObstacleModels = [];
+        this.desertBorderModels = [];
+
+        const desertGlbFiles = [
+            '/assets/3D_Models/Bioms/Desert/cactus.glb',
+            '/assets/3D_Models/Bioms/Desert/stylized_cactus.glb',
+            '/assets/3D_Models/Bioms/Desert/desert_plant.glb',
+            '/assets/3D_Models/Bioms/Desert/desert_plants.glb',
+            '/assets/3D_Models/Bioms/Desert/desert_rocks.glb',
+            '/assets/3D_Models/Bioms/Desert/desert_rocks (1).glb'
+        ];
+        const desertTextureBase = '/assets/3D_Models/Bioms/Desert/TEXTURES/EGYPTIAN FLOOR ENTRANCE.fbm/entrada piso_DefaultMaterial_BaseColor.png';
+        const desertTextureNormal = '/assets/3D_Models/Bioms/Desert/TEXTURES/EGYPTIAN FLOOR ENTRANCE.fbm/entrada piso_DefaultMaterial_Normal.png';
+        const desertTextureRough = '/assets/3D_Models/Bioms/Desert/TEXTURES/EGYPTIAN FLOOR ENTRANCE.fbm/entrada piso_DefaultMaterial_Roughness.png';
+        const desertTextureMetal = '/assets/3D_Models/Bioms/Desert/TEXTURES/EGYPTIAN FLOOR ENTRANCE.fbm/entrada piso_DefaultMaterial_Metallic.png';
+
+        const ensureMaterials = (object: THREE.Object3D, color: number = 0xd9b37c) => {
+            object.traverse((child: THREE.Object3D) => {
+                if ((child as THREE.Mesh).isMesh) {
+                    const mesh = child as THREE.Mesh;
+                    if (!mesh.material || (Array.isArray(mesh.material) && mesh.material.length === 0)) {
+                        mesh.material = new THREE.MeshStandardMaterial({
+                            color: color,
+                            roughness: 0.9,
+                            metalness: 0.0
+                        });
+                    }
+                }
+            });
+        };
+
+        const [map, normalMap, roughnessMap, metalnessMap] = await Promise.all([
+            this.textureLoader.loadAsync(encodeURI(desertTextureBase)),
+            this.textureLoader.loadAsync(encodeURI(desertTextureNormal)),
+            this.textureLoader.loadAsync(encodeURI(desertTextureRough)),
+            this.textureLoader.loadAsync(encodeURI(desertTextureMetal))
+        ]);
+        map.colorSpace = THREE.SRGBColorSpace;
+        map.wrapS = THREE.RepeatWrapping;
+        map.wrapT = THREE.RepeatWrapping;
+        map.repeat.set(10, 10);
+        map.needsUpdate = true;
+
+        if (this.groundModel) {
+            const template = this.groundModel.clone();
+            template.traverse((child: THREE.Object3D) => {
+                if ((child as THREE.Mesh).isMesh) {
+                    const mesh = child as THREE.Mesh;
+                    mesh.material = new THREE.MeshStandardMaterial({
+                        color: 0xe9c46a,
+                        roughness: 0.95,
+                        metalness: 0.0
+                    });
+                }
+            });
+            template.scale.x *= 2.8;
+            template.scale.z *= 1.1;
+            template.scale.y *= 1.6;
+            template.position.y -= 2.5;
+            this.desertGroundTemplate = template;
+        }
+
+        const normalizeToSize = (object: THREE.Object3D, target: number) => {
+            const box = new THREE.Box3().setFromObject(object);
+            const size = new THREE.Vector3();
+            box.getSize(size);
+            const maxDim = Math.max(size.x, size.y, size.z);
+            if (maxDim > 0) {
+                const scale = target / maxDim;
+                object.scale.set(scale, scale, scale);
+            }
+            const center = new THREE.Vector3();
+            box.getCenter(center);
+            object.position.x -= center.x;
+            object.position.y -= center.y;
+            object.position.z -= center.z;
+        };
+
+        const targetSize = 13;
+        let index = 0;
+        for (const path of desertGlbFiles) {
+            try {
+                const gltf = await this.gltfLoader.loadAsync(encodeURI(path));
+                ensureMaterials(gltf.scene, 0xd9b37c);
+                const model = gltf.scene.clone(true);
+                normalizeToSize(model, targetSize);
+                const fileName = path.split('/').pop()?.replace('.glb', '') || `desert_${index}`;
+                model.name = `desert_${fileName}`;
+                if (fileName.toLowerCase().includes('desert_plant')) {
+                    model.traverse((child: THREE.Object3D) => {
+                        if ((child as THREE.Mesh).isMesh) {
+                            const mesh = child as THREE.Mesh;
+                            const applyGreen = (mat: any) => {
+                                if (!mat) return;
+                                if (mat.color) mat.color.setHex(0x6fbf4a);
+                                if ('roughness' in mat) mat.roughness = 0.9;
+                                if ('metalness' in mat) mat.metalness = 0.0;
+                                mat.needsUpdate = true;
+                            };
+                            if (Array.isArray(mesh.material)) mesh.material.forEach(applyGreen);
+                            else applyGreen(mesh.material as any);
+                        }
+                    });
+                }
+                model.userData.isDesert = true;
+                this.desertDecorationModels.push(model);
+                const lower = fileName.toLowerCase();
+                if (lower.includes('rock') || lower.includes('cactus')) {
+                    this.desertObstacleModels.push(model);
+                }
+                index++;
+            } catch (e) { console.error(`Failed to load desert GLB: ${path}`, e); }
+        }
+    }
+
     private initPlayer() {
         this.player.add(this.pigMesh);
         this.pigMesh.scale.set(2.0, 2.0, 2.0);
@@ -737,13 +867,14 @@ export class Game {
             for (let i = 0; i < 60; i++) this.createCloud(i * 300);
         }
 
-        const gridZ = 15; const gridX = 5;
+        const gridZ = 15;
+        const gridX = (this.currentBiom === 'desert') ? 13 : 5;
         for (let z = 0; z < gridZ; z++) {
             for (let x = -Math.floor(gridX / 2); x <= Math.floor(gridX / 2); x++) {
                 this.spawnGroundSegment(x * this.tileWidth, z * this.tileSize);
             }
         }
-        if (this.currentBiom !== 'city' && this.currentBiom !== 'sky') {
+        if (this.currentBiom === 'clouds') {
             for (let i = 0; i < 40; i++) this.createCloud(i * 350);
         }
     }
@@ -783,6 +914,11 @@ export class Game {
         return group;
     }
 
+    private createDesertGroundTile(): THREE.Group | null {
+        if (!this.desertGroundTemplate) return null;
+        return this.desertGroundTemplate.clone();
+    }
+
     private spawnGroundSegment(x: number, z: number) {
         let segment: THREE.Group | null = null;
         if (this.currentBiom === 'city') {
@@ -794,6 +930,8 @@ export class Game {
             } else if (this.cityGroundModels.length > 0) {
                 segment = this.cityGroundModels[Math.floor(Math.random() * this.cityGroundModels.length)].clone();
             }
+        } else if (this.currentBiom === 'desert') {
+            segment = this.createDesertGroundTile();
         } else if (this.currentBiom === 'sky') {
             const isEdge = Math.abs(x) >= this.tileWidth * 2 - 0.01;
             const side = x >= 0 ? 1 : -1;
@@ -815,6 +953,17 @@ export class Game {
                 this.spawnCityEdgeDecoration(x, z);
                 this.spawnCityRockBorder(x, z);
             }
+        } else if (this.currentBiom === 'desert') {
+            const density = 1;
+            for (let i = 0; i < density; i++) {
+                if (Math.random() < 0.35) this.spawnDesertDecoration(x, z);
+            }
+            if (Math.abs(x) >= this.tileWidth * 2.2 - 0.01) {
+                this.spawnDesertRockBorder(x, z);
+            }
+            if (Math.abs(x) >= this.tileWidth * 2.2 - 0.01) {
+                this.spawnDesertBorder(x, z);
+            }
         } else if (this.currentBiom === 'sky') {
             const density = 3;
             for (let i = 0; i < density; i++) this.spawnSkyDecorationOnTile(x, z);
@@ -827,6 +976,116 @@ export class Game {
             }
             if (Math.abs(x) >= this.tileWidth * 2) this.spawnMountain(x, z);
         }
+    }
+
+    private spawnDesertDecoration(centerX: number, centerZ: number) {
+        if (this.desertDecorationModels.length === 0) return;
+        const tries = 4;
+        for (let t = 0; t < tries; t++) {
+            const deco = this.desertDecorationModels[Math.floor(Math.random() * this.desertDecorationModels.length)].clone();
+            const decoX = centerX + (Math.random() - 0.5) * this.tileWidth;
+            const decoZ = centerZ + (Math.random() - 0.5) * this.tileSize;
+            if (Math.abs(decoX) < this.laneWidth * 0.8) continue;
+            if (!this.desertHasGroundAt(decoX, decoZ)) continue;
+            if (!this.canPlaceDesertAt(decoX, decoZ, 10)) continue;
+            deco.position.set(decoX, 0, decoZ);
+            deco.rotation.y = Math.random() * Math.PI * 2;
+            deco.userData.isDesert = true;
+            this.scene.add(deco); this.decorations.push(deco);
+            return;
+        }
+    }
+
+
+    private spawnDesertBorder(x: number, z: number) {
+        if (this.desertDecorationModels.length === 0) return;
+        if (Math.abs(x) < this.tileWidth * 2.2 - 0.01) return;
+        const side = x > 0 ? 1 : -1;
+        const sideIndex = side > 0 ? 1 : 0;
+        if (z - this.desertBorderLastZ[sideIndex] < this.tileSize * 0.8) return;
+
+        const source = this.desertDecorationModels[Math.floor(Math.random() * this.desertDecorationModels.length)];
+        const ruin = source.clone();
+        const offsetX = side * (this.tileWidth * 0.45 + 35 + Math.random() * 55);
+        const posX = x + offsetX;
+        const posZ = z + (Math.random() - 0.5) * this.tileSize;
+        if (!this.desertHasGroundAt(posX, posZ)) return;
+        if (!this.canPlaceDesertAt(posX, posZ, 12)) return;
+        ruin.position.set(posX, 0, posZ);
+        ruin.rotation.y = Math.random() * Math.PI * 2;
+        ruin.userData.isDesert = true;
+        this.scene.add(ruin); this.decorations.push(ruin);
+        this.desertBorderLastZ[sideIndex] = z;
+
+        if (Math.random() < 0.45) {
+            this.spawnDesertSidePyramid(1, z);
+            this.spawnDesertSidePyramid(-1, z);
+        }
+    }
+
+    private canPlaceDesertAt(x: number, z: number, minDist: number) {
+        const minDistSq = minDist * minDist;
+        for (const deco of this.decorations) {
+            if (!deco.userData?.isDesert) continue;
+            const dx = deco.position.x - x;
+            const dz = deco.position.z - z;
+            if (dx * dx + dz * dz < minDistSq) return false;
+        }
+        for (const obs of this.obstacles) {
+            if (obs.name !== 'desert_obstacle') continue;
+            const dx = obs.position.x - x;
+            const dz = obs.position.z - z;
+            if (dx * dx + dz * dz < minDistSq) return false;
+        }
+        return true;
+    }
+
+    private desertHasGroundAt(x: number, z: number) {
+        if (this.tileWidth <= 0 || this.tileSize <= 0) return false;
+        for (const g of this.grounds) {
+            const dx = Math.abs(g.position.x - x);
+            const dz = Math.abs(g.position.z - z);
+            if (dx <= this.tileWidth * 0.55 && dz <= this.tileSize * 0.55) return true;
+        }
+        return false;
+    }
+
+    private spawnDesertSidePyramid(side: number, z: number) {
+        if (!this.desertPyramidGeo) this.desertPyramidGeo = new THREE.CylinderGeometry(0, 140, 180, 4);
+        if (!this.desertPyramidMat) this.desertPyramidMat = new THREE.MeshStandardMaterial({ color: 0xd9b37c, roughness: 0.95, metalness: 0.0 });
+        const pyramid = new THREE.Mesh(this.desertPyramidGeo, this.desertPyramidMat);
+        const posX = side * (this.tileWidth * 2.2 + 30 + Math.random() * 45);
+        const posZ = z + (Math.random() - 0.5) * this.tileSize * 1.4;
+        if (!this.desertHasGroundAt(posX, posZ)) return;
+        if (!this.canPlaceDesertAt(posX, posZ, 45)) return;
+        pyramid.position.set(posX, 0, posZ);
+        pyramid.rotation.y = Math.PI * 0.25;
+        pyramid.userData.isDesert = true;
+        this.scene.add(pyramid); this.decorations.push(pyramid);
+    }
+
+    private spawnDesertRockBorder(x: number, z: number) {
+        if (!this.rockModelBig) return;
+        if (this.tileWidth <= 0 || this.tileSize <= 0) return;
+        if (Math.abs(x) < this.tileWidth * 2.8 - 0.01) return;
+
+        if (!this.desertRockMaterial) {
+            this.desertRockMaterial = new THREE.MeshLambertMaterial({ color: 0xd9b37c });
+        }
+
+        const side = x > 0 ? 1 : -1;
+        const rock = this.rockModelBig.clone();
+        rock.traverse((child: THREE.Object3D) => {
+            if ((child as THREE.Mesh).isMesh) (child as THREE.Mesh).material = this.desertRockMaterial!;
+        });
+
+        const offsetX = side * (this.tileWidth * 0.6 + 55 + Math.random() * 75);
+        const offsetZ = (Math.random() - 0.5) * this.tileSize;
+        rock.position.set(x + offsetX, 0, z + offsetZ);
+        rock.scale.multiplyScalar(4 + Math.random() * 4);
+        rock.rotation.y = Math.random() * Math.PI;
+        rock.userData.isDesert = true;
+        this.scene.add(rock); this.decorations.push(rock);
     }
 
     private spawnSkyDecorationOnTile(centerX: number, centerZ: number) {
@@ -1056,6 +1315,70 @@ export class Game {
             this.skyObstacleLastZ = spawnZ;
 
             if (Math.random() < 0.3) this.spawnSkyDecoration();
+        } else if (this.currentBiom === 'desert') {
+            if (this.desertObstacleModels.length === 0) return;
+            const lanes = [-1, 0, 1].sort(() => Math.random() - 0.5);
+            const spawnZ = this.player.position.z + 550;
+            const minLaneSpacingZ = 120;
+            const minAnySpacingZ = 75;
+
+            const isLaneClear = (laneIndex: number, laneX: number, z: number) => {
+                if (z - this.desertObstacleLastZ[laneIndex] < minLaneSpacingZ) return false;
+                for (const obs of this.obstacles) {
+                    if (obs.name !== 'desert_obstacle') continue;
+                    if (Math.abs(obs.position.z - z) < minAnySpacingZ) return false;
+                    if (Math.abs(obs.position.x - laneX) > 0.1) continue;
+                    if (Math.abs(obs.position.z - z) < minLaneSpacingZ) return false;
+                }
+                return true;
+            };
+
+            let placed = 0;
+            const wantTwo = Math.random() < 0.35;
+            for (let i = 0; i < lanes.length && placed < (wantTwo ? 2 : 1); i++) {
+                const laneIndex = lanes[i] + 1;
+                const laneX = lanes[i] * this.laneWidth;
+                if (!isLaneClear(laneIndex, laneX, spawnZ)) continue;
+                if (!this.canPlaceDesertAt(laneX, spawnZ, 12)) continue;
+
+                const obstacle = this.desertObstacleModels[Math.floor(Math.random() * this.desertObstacleModels.length)].clone();
+                const isCactus = obstacle.name.toLowerCase().includes('cactus');
+                const y = (this.altitude - 2.0) + (isCactus ? -1.5 : 0);
+                obstacle.position.set(laneX, y, spawnZ);
+                obstacle.rotation.y = Math.random() * Math.PI * 2;
+                const sourceName = (obstacle.name || '').toLowerCase();
+                const shrinkBig = sourceName.includes('stylized_cactus');
+                const shrinkRocks1 = sourceName.includes('desert_rocks (1)');
+                const shrinkRocksAny = sourceName.includes('desert_rocks');
+                obstacle.name = 'desert_obstacle';
+                obstacle.userData.isDesert = true;
+                obstacle.userData.laneX = laneX;
+                obstacle.scale.multiplyScalar(shrinkRocks1 ? 0.38 : (shrinkBig ? 0.6 : 1.45));
+                if (shrinkRocks1) {
+                    obstacle.rotation.y = Math.PI * 0.5;
+                    obstacle.scale.x *= 0.7;
+                    obstacle.scale.z *= 0.7;
+                    obstacle.userData.collisionWidth = this.laneWidth * 0.35;
+                }
+                if (shrinkRocksAny) {
+                    obstacle.position.y -= 0.6;
+                }
+                if (isCactus) {
+                    obstacle.position.y -= 0.3;
+                }
+                const box = new THREE.Box3().setFromObject(obstacle);
+                if (shrinkRocks1) {
+                    const shrink = 0.45;
+                    const size = new THREE.Vector3();
+                    box.getSize(size);
+                    box.expandByVector(new THREE.Vector3(-size.x * shrink, -size.y * 0.2, -size.z * shrink));
+                }
+                obstacle.userData.boundingBox = box;
+
+                this.scene.add(obstacle); this.obstacles.push(obstacle);
+                this.desertObstacleLastZ[laneIndex] = spawnZ;
+                placed++;
+            }
         } else {
             if (this.treeModels.length === 0) return;
             const lane = (Math.floor(Math.random() * 3) - 1) * this.laneWidth;
@@ -1205,6 +1528,22 @@ export class Game {
         this.isIntro = false;
     }
 
+    private switchToDesertBiom() {
+        this.currentBiom = 'desert';
+        this.scene.background = new THREE.Color(0xf0d29b);
+        this.scene.fog = new THREE.FogExp2(0xf0d29b, 0.00012);
+        this.pigMesh.position.y = 0;
+
+        this.grounds.forEach(g => this.scene.remove(g));
+        this.decorations.forEach(d => this.scene.remove(d));
+        this.grounds = [];
+        this.decorations = [];
+        this.desertBorderLastZ = [-Infinity, -Infinity];
+        this.desertObstacleLastZ = [-Infinity, -Infinity, -Infinity];
+
+        this.initEnvironment();
+        this.isIntro = false;
+    }
     private switchToSkyBiom() {
         this.currentBiom = 'sky';
         this.scene.background = new THREE.Color(0xc7e9ff);
@@ -1316,6 +1655,9 @@ export class Game {
                     } else if (this.currentBiom === 'transitioning_to_city') {
                         this.scene.background = new THREE.Color(0x87ceeb);
                         this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.00015);
+                    } else if (this.currentBiom === 'transitioning_to_desert') {
+                        this.scene.background = new THREE.Color(0xf0d29b);
+                        this.scene.fog = new THREE.FogExp2(0xf0d29b, 0.00015);
                     }
                 }
 
@@ -1326,16 +1668,23 @@ export class Game {
                         this.switchToSkyBiom();
                     } else if (this.currentBiom === 'transitioning_to_city') {
                         this.switchToCityBiom();
+                    } else if (this.currentBiom === 'transitioning_to_desert') {
+                        this.switchToDesertBiom();
                     }
                 }
             }
 
             if (this.currentBiom === 'clouds' && this.score >= 200) {
+                this.currentBiom = 'transitioning_to_desert';
+                this.startTransition(0, 8.5);
+            }
+
+            if (this.currentBiom === 'desert' && this.score >= 400) {
                 this.currentBiom = 'transitioning_to_sky';
                 this.startTransition(0, 8.5);
             }
 
-            if (this.currentBiom === 'sky' && this.score >= 400) {
+            if (this.currentBiom === 'sky' && this.score >= 600) {
                 this.currentBiom = 'transitioning_to_city';
                 this.startTransition(0, 8.5);
             }
@@ -1354,8 +1703,8 @@ export class Game {
             if (scoreElem) scoreElem.innerText = `SCORE: ${Math.floor(this.score).toString().padStart(5, '0')}`;
             if (distElem) distElem.innerText = `DIST: ${Math.floor(this.distance)}m`;
 
-            if (this.currentBiom === 'clouds' || this.currentBiom === 'city' || this.currentBiom === 'sky') {
-                const gridWidth = 5;
+            if (this.currentBiom === 'clouds' || this.currentBiom === 'city' || this.currentBiom === 'sky' || this.currentBiom === 'desert') {
+                const gridWidth = (this.currentBiom === 'desert') ? 13 : 5;
                 this.grounds.sort((a: THREE.Group, b: THREE.Group) => a.position.z - b.position.z);
                 while (this.grounds.length > 0 && this.grounds[0].position.z < this.player.position.z - this.tileSize * 2.0) {
                     const batch = this.grounds.splice(0, gridWidth);
@@ -1369,6 +1718,16 @@ export class Game {
                             if (Math.abs(g.position.x) >= this.tileWidth * 2 - 0.01) {
                                 this.spawnCityEdgeDecoration(g.position.x, g.position.z);
                                 this.spawnCityRockBorder(g.position.x, g.position.z);
+                            }
+                        } else if (this.currentBiom === 'desert') {
+                            for (let i = 0; i < 1; i++) {
+                                if (Math.random() < 0.35) this.spawnDesertDecoration(g.position.x, g.position.z);
+                            }
+                            if (Math.abs(g.position.x) >= this.tileWidth * 2.2 - 0.01) {
+                                this.spawnDesertRockBorder(g.position.x, g.position.z);
+                            }
+                            if (Math.abs(g.position.x) >= this.tileWidth * 2.2 - 0.01) {
+                                this.spawnDesertBorder(g.position.x, g.position.z);
                             }
                         } else if (this.currentBiom === 'sky') {
                             for (let i = 0; i < 3; i++) this.spawnSkyDecorationOnTile(g.position.x, g.position.z);
@@ -1395,7 +1754,11 @@ export class Game {
                 }
             });
 
-            const obstacleChance = (this.currentBiom === 'city') ? 0.16 : (this.currentBiom === 'sky' ? 0.20 : 0.012);
+            const obstacleChance =
+                (this.currentBiom === 'city') ? 0.16 :
+                    (this.currentBiom === 'sky') ? 0.20 :
+                        (this.currentBiom === 'desert') ? 0.06 :
+                            0.012;
             if (Math.random() < obstacleChance) this.spawnObstacle();
 
             if (!this.isIntro) {
@@ -1406,7 +1769,7 @@ export class Game {
                     const obs = this.obstacles[i];
                     let oBox: THREE.Box3;
 
-                    if (this.currentBiom === 'sky' || this.currentBiom === 'city') {
+                    if (this.currentBiom === 'sky' || this.currentBiom === 'city' || this.currentBiom === 'desert') {
                         if (obs.userData.boundingBox) {
                             const stored = obs.userData.boundingBox as THREE.Box3;
                             oBox = stored.clone();
@@ -1421,6 +1784,10 @@ export class Game {
                         if (this.currentBiom === 'sky') {
                             oBox.min.y = this.altitude - 2;
                             oBox.max.y = this.altitude + 2;
+                        }
+                        if (this.currentBiom === 'desert') {
+                            oBox.min.y = 0;
+                            oBox.max.y = 1000;
                         }
                         if (pBox.intersectsBox(oBox)) this.gameOver();
                     } else {
