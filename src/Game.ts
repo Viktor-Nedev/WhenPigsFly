@@ -1853,6 +1853,7 @@ export class Game {
         this.flightStartTime = performance.now();
         this.flightObstaclesDodged = 0;
         this.loadControlBindings();
+        this.player.position.z = 0;
 
         this.obstacles.forEach(o => this.scene.remove(o));
         this.decorations.forEach(d => this.scene.remove(d));
@@ -1886,6 +1887,8 @@ export class Game {
         if (finalDistanceElem) finalDistanceElem.textContent = '0m';
         if (finalTimeElem) finalTimeElem.textContent = '0:00';
         if (finalDodgedElem) finalDodgedElem.textContent = '0';
+        const distElem = document.getElementById('distance');
+        if (distElem) distElem.innerText = 'DIST: 0m';
 
         this.updateBiomProgress();
     }

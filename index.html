@@ -1075,7 +1075,7 @@
                                 <div id="final-time">0:00</div>
                             </div>
                             <div class="stat-item">
-                                <div class="stat-label">OBSTACLES</div>
+                                <div class="stat-label">DODGED OBSTACLES</div>
                                 <div id="final-dodged">0</div>
                             </div>
                         </div>
@@ -1155,7 +1155,7 @@
                                         d="M5 4h14v2H5V4zm0 10h4v6H5v-6zm10 0h4v6h-4v-6zM5 8h14v2H5V8zm0 4h14v2H5v-2z" />
                                 </svg>
                             </span>
-                            <span class="btn-text">CHEST</span>
+                            <span class="btn-text">PIG BANK</span>
                         </button>
 
                         <button class="nav-btn" id="settings-btn">
@@ -1183,7 +1183,7 @@
                                 </div>
                                 <div class="stat-card">
                                     <div class="stat-card-value" id="obstacles-dodged">0</div>
-                                    <div class="stat-card-label">Best Obstacles</div>
+                                    <div class="stat-card-label">Dodged Obstacles</div>
                                 </div>
                                 <div class="stat-card">
                                     <div class="stat-card-value" id="play-time">0:00</div>
@@ -1250,19 +1250,25 @@
                         </div>
 
                         <div class="submenu" id="chest-submenu">
-                            <h3>TREASURE CHESTS</h3>
-                            <p>Open chests to discover amazing items for your pig!</p>
-                            <div class="chest-grid">
-                                <div class="chest-item" data-chest="common">
-                                    <div class="chest-icon">📦</div>
-                                    <div class="chest-name">Common Chest</div>
-                                    <button class="open-chest-btn" data-chest="common">Open (Free!)</button>
+                            <h3>PIG BANK</h3>
+                            <p class="pigbank-desc">Fly farther to unlock your Pig Bank and claim epic rewards!</p>
+                            <div class="pigbank-wrap">
+                                <div class="pigbank-progress-block">
+                                    <div class="pigbank-progress-label">PIG BANK PROGRESS</div>
+                                    <div class="pigbank-progress-bar">
+                                        <div id="pigbank-distance-fill"></div>
+                                    </div>
+                                    <div id="pigbank-distance-text" class="pigbank-distance-text">0 / 5000m</div>
                                 </div>
-                                <div class="chest-item" data-chest="rare">
-                                    <div class="chest-icon">🎁</div>
-                                    <div class="chest-name">Rare Chest</div>
-                                    <button class="open-chest-btn" data-chest="rare">Open (100🪙)</button>
+                                <div class="pigbank-card">
+                                    <img id="pigbank-image" class="pigbank-image"
+                                        src="/assets/3D_Models/Chest/pigbank_normal.png" alt="Pig Bank">
+                                    <div class="pigbank-progress">
+                                        <div id="pigbank-progress-fill"></div>
+                                    </div>
+                                    <div id="pigbank-hint" class="pigbank-hint">LOCKED</div>
                                 </div>
+                                <div id="pigbank-reward" class="pigbank-reward hidden"></div>
                             </div>
                         </div>
 

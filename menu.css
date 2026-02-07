@@ -649,51 +649,227 @@
 }
 
 
-.chest-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 25px;
+.pigbank-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     margin-top: 25px;
+    gap: 20px;
 }
 
-.chest-item {
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 140, 0, 0.1));
-    border-radius: 25px;
-    padding: 25px;
-    text-align: center;
-    border: 5px solid #ff9800;
-}
-
-.chest-icon {
-    font-size: 60px;
-    margin-bottom: 15px;
-}
-
-.chest-name {
+.pigbank-desc {
     font-family: 'Luckiest Guy', cursive;
-    font-size: 22px;
-    color: #ff9800;
-    margin-bottom: 15px;
-    font-weight: 400;
+    text-align: center;
+    color: #ff6bcb;
+    font-size: 20px;
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
 }
 
-.open-chest-btn {
-    background: linear-gradient(135deg, #ff9800, #ff5722);
+.pigbank-progress-block {
+    width: 100%;
+    max-width: 520px;
+    text-align: center;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(240, 252, 255, 0.85));
+    border-radius: 20px;
+    padding: 14px 18px;
+    border: 3px solid rgba(255, 107, 203, 0.4);
+    box-shadow: 0 10px 20px rgba(255, 107, 203, 0.2);
+}
+
+.pigbank-progress-label {
+    font-family: 'Luckiest Guy', cursive;
+    color: #ff1493;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+.pigbank-progress-bar {
+    width: 100%;
+    height: 14px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 999px;
+    overflow: hidden;
+    border: 2px solid rgba(255, 107, 203, 0.3);
+}
+
+#pigbank-distance-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #ff6bcb, #6bf);
+    transition: width 0.3s ease;
+}
+
+.pigbank-distance-text {
+    margin-top: 6px;
+    font-family: 'Changa One', cursive;
+    color: #ff1493;
+}
+
+.pigbank-card {
+    background: linear-gradient(135deg, rgba(255, 214, 232, 0.5), rgba(204, 236, 255, 0.5));
+    border-radius: 28px;
+    padding: 24px;
+    text-align: center;
+    border: 4px solid rgba(255, 107, 203, 0.4);
+    box-shadow: 0 15px 30px rgba(255, 107, 203, 0.25);
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    max-width: 420px;
+}
+
+.pigbank-card.hidden {
+    display: none;
+}
+
+.pigbank-image {
+    width: 100%;
+    max-width: 280px;
+    height: auto;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.pigbank-image:hover {
+    transform: scale(1.03);
+}
+
+.pigbank-pop {
+    animation: pigbankPop 0.25s ease;
+}
+
+.pigbank-shake {
+    animation: pigbankShake 0.3s ease;
+}
+
+.pigbank-stage {
+    margin-top: 10px;
+    font-family: 'Luckiest Guy', cursive;
+    font-size: 18px;
+    color: #ff1493;
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.15);
+}
+
+.pigbank-progress {
+    margin: 12px 0 6px;
+    width: 100%;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 999px;
+    overflow: hidden;
+    border: 2px solid rgba(255, 107, 203, 0.3);
+}
+
+#pigbank-progress-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #ff6bcb, #6bf);
+    transition: width 0.3s ease;
+}
+
+.pigbank-clicks {
+    font-family: 'Changa One', cursive;
+    font-size: 16px;
+    color: #ff1493;
+}
+
+.pigbank-hint {
+    margin-top: 8px;
+    font-weight: 700;
+    color: #ff6bcb;
+    letter-spacing: 1px;
+}
+
+.pigbank-reward {
+    min-height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.25);
+    border: 2px dashed rgba(255, 107, 203, 0.35);
+    width: 100%;
+    max-width: 420px;
+}
+
+.pigbank-reward.hidden {
+    display: none;
+}
+
+.pigbank-reward.reveal {
+    animation: rewardDrop 0.35s ease-out;
+}
+
+.pigbank-reward.reveal .reward-card {
+    animation: rewardPop 0.5s ease-out;
+}
+
+
+.reward-card {
+    width: 100%;
+    max-width: 320px;
+    text-align: center;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(240, 252, 255, 0.9));
+    border-radius: 22px;
+    padding: 20px;
+    border: 4px solid #ff6bcb;
+    box-shadow: 0 18px 35px rgba(255, 107, 203, 0.35);
+    animation: rewardPop 0.5s ease-out;
+}
+
+.reward-actions {
+    margin-top: 14px;
+}
+
+.collect-reward-btn {
+    background: linear-gradient(135deg, #ff6bcb, #6bf);
     border: none;
     color: white;
-    padding: 12px 25px;
-    border-radius: 25px;
-    cursor: pointer;
-    font-family: 'Bungee', cursive;
+    padding: 10px 24px;
+    border-radius: 18px;
+    font-family: 'Luckiest Guy', cursive;
     font-size: 16px;
-    font-weight: 400;
-    border: 4px solid white;
-    transition: all 0.3s;
+    cursor: pointer;
+    border: 3px solid white;
+    box-shadow: 0 6px 15px rgba(255, 107, 203, 0.35);
 }
 
-.open-chest-btn:hover {
+.collect-reward-btn:hover {
     transform: scale(1.05);
-    box-shadow: 0 10px 20px rgba(255, 152, 0, 0.3);
+}
+
+.reward-title {
+    font-family: 'Luckiest Guy', cursive;
+    color: #ff1493;
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+@keyframes rewardPop {
+    0% { transform: scale(0.6); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+
+@keyframes pigbankPop {
+    0% { transform: scale(0.96); }
+    100% { transform: scale(1); }
+}
+
+@keyframes pigbankShake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    50% { transform: translateX(4px); }
+    75% { transform: translateX(-3px); }
+    100% { transform: translateX(0); }
+}
+
+
+@keyframes rewardDrop {
+    0% { transform: translateY(-20px) scale(0.95); opacity: 0; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 

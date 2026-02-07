@@ -7,6 +7,12 @@ export class MenuManager {
     private selectedPig: string = 'minecraft';
     private selectedWing: string = 'none';
     private selectedParticle: string = 'none';
+    private pigBankClicks: number = 0;
+    private pigBankStage: number = 0;
+    private pigBankBusy: boolean = false;
+    private pigBankCardEl: HTMLElement | null = null;
+    private pigBankRewardEl: HTMLElement | null = null;
+    private pigBankUnlocked: boolean = false;
 
     private pigs = [
         { id: 'basic', name: 'Original Pig', model: '/pig.glb', icon: '/images/shop/pixelpig.png', speed: 5.0, agility: 3.0, luck: 2.0, owned: false, price: 0, color: '#ffadc7' },
@@ -138,12 +144,7 @@ export class MenuManager {
         document.getElementById('reset-progress')?.addEventListener('click', () => this.resetProgress());
         document.getElementById('fullscreen-toggle')?.addEventListener('click', () => this.toggleFullscreen());
 
-        document.querySelectorAll('.open-chest-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const chestType = (e.target as HTMLElement).dataset.chest;
-                if (chestType) this.openChest(chestType);
-            });
-        });
+        this.initPigBank();
     }
 
     public showMenu(): void {
@@ -405,6 +406,7 @@ export class MenuManager {
         if (quickScoreElement) quickScoreElement.textContent = bestScore;
 
         this.updateFlightsList();
+        this.updatePigBankProgress(parseInt(localStorage.getItem('totalDistance') || '0'));
     }
 
     private updateFlightsList(): void {
@@ -431,38 +433,172 @@ export class MenuManager {
         }
     }
 
-    private openChest(chestType: string): void {
-        let cost = (chestType === 'rare') ? 100 : 0;
-        if (this.coins < cost) {
-            this.showInsufficientFundsModal();
+    private initPigBank(): void {
+        const pigImage = document.getElementById('pigbank-image') as HTMLImageElement | null;
+        const stageLabel = document.getElementById('pigbank-stage');
+        const progressFill = document.getElementById('pigbank-progress-fill');
+        const clicksLabel = document.getElementById('pigbank-clicks');
+        const rewardSlot = document.getElementById('pigbank-reward');
+        const distanceFill = document.getElementById('pigbank-distance-fill') as HTMLElement | null;
+        const distanceText = document.getElementById('pigbank-distance-text');
+        const hint = document.getElementById('pigbank-hint');
+        const pigCard = document.querySelector('.pigbank-card') as HTMLElement | null;
+        if (!pigImage || !progressFill || !rewardSlot) return;
+
+        this.pigBankCardEl = pigCard;
+        this.pigBankRewardEl = rewardSlot;
+
+        const totalDistance = parseInt(localStorage.getItem('totalDistance') || '0');
+        const base = parseInt(localStorage.getItem('pigBankDistanceBase') || '0');
+        if (!isNaN(base) && base > totalDistance) {
+            localStorage.setItem('pigBankDistanceBase', `${totalDistance}`);
+        }
+        this.updatePigBankProgress(totalDistance, distanceFill, distanceText, hint);
+
+        this.pigBankClicks = 0;
+        localStorage.setItem('pigBankClicks', '0');
+        this.updatePigBankUI(pigImage, stageLabel, progressFill, clicksLabel);
+        if (this.pigBankClicks < 32) rewardSlot.classList.add('hidden');
+        pigCard?.classList.remove('hidden');
+        if (hint) hint.textContent = this.pigBankUnlocked ? 'CLICK ME!' : 'LOCKED';
+
+        pigImage.addEventListener('click', () => {
+            if (this.pigBankBusy) return;
+            const totalDistanceNow = parseInt(localStorage.getItem('totalDistance') || '0');
+            this.updatePigBankProgress(totalDistanceNow);
+            if (!this.pigBankUnlocked) {
+                pigImage.classList.remove('pigbank-shake');
+                void pigImage.offsetWidth;
+                pigImage.classList.add('pigbank-shake');
+                return;
+            }
+            if (this.pigBankClicks >= 32) return;
+            this.pigBankClicks += 1;
+            localStorage.setItem('pigBankClicks', `${this.pigBankClicks}`);
+            this.updatePigBankUI(pigImage, stageLabel, progressFill, clicksLabel);
+            pigImage.classList.remove('pigbank-pop');
+            void pigImage.offsetWidth;
+            pigImage.classList.add('pigbank-pop');
+
+            if (this.pigBankClicks >= 32) {
+                this.revealPigBankReward(rewardSlot);
+            }
+        });
+    }
+
+    private updatePigBankProgress(totalDistance: number, fillEl?: HTMLElement | null, textEl?: HTMLElement | null, hintEl?: HTMLElement | null): void {
+        const base = parseInt(localStorage.getItem('pigBankDistanceBase') || '0');
+        const adjustedBase = isNaN(base) ? 0 : base;
+        const bankDistance = Math.max(0, totalDistance - adjustedBase);
+        const progress = Math.min(1, bankDistance / 5000);
+        const fill = fillEl || (document.getElementById('pigbank-distance-fill') as HTMLElement | null);
+        const text = textEl || document.getElementById('pigbank-distance-text');
+        const hint = hintEl || document.getElementById('pigbank-hint');
+        if (fill) fill.style.width = `${Math.round(progress * 100)}%`;
+        if (text) text.textContent = `${Math.min(bankDistance, 5000)} / 5000m`;
+        this.pigBankUnlocked = bankDistance >= 5000;
+        if (hint) hint.textContent = this.pigBankUnlocked ? 'CLICK ME!' : 'LOCKED';
+    }
+
+    private updatePigBankUI(
+        pigImage: HTMLImageElement,
+        stageLabel: HTMLElement | null,
+        progressFill: HTMLElement,
+        clicksLabel: HTMLElement | null
+    ): void {
+        const stage = Math.min(3, Math.floor(this.pigBankClicks / 8));
+        this.pigBankStage = stage;
+        const images = [
+            '/assets/3D_Models/Chest/pigbank_normal.png',
+            '/assets/3D_Models/Chest/pigbank_stage1.png',
+            '/assets/3D_Models/Chest/pigbank_stage2.png',
+            '/assets/3D_Models/Chest/pigbank_stage3.png'
+        ];
+        pigImage.src = images[stage];
+        if (stageLabel) stageLabel.textContent = `STAGE ${stage}`;
+        const progress = Math.min(100, Math.round((this.pigBankClicks / 32) * 100));
+        progressFill.style.width = `${progress}%`;
+        if (clicksLabel) clicksLabel.textContent = `${this.pigBankClicks} / 32`;
+    }
+
+    private revealPigBankReward(rewardSlot: HTMLElement): void {
+        this.pigBankBusy = true;
+        rewardSlot.classList.remove('hidden');
+        this.pigBankCardEl?.classList.add('hidden');
+        rewardSlot.classList.add('reveal');
+        rewardSlot.innerHTML = '';
+
+        const reward = this.pickPigBankReward();
+        if (!reward) {
+            rewardSlot.innerHTML = `<div class="reward-card"><div class="reward-title">ALL UNLOCKED!</div><div>No rewards left.</div></div>`;
+            this.pigBankBusy = false;
             return;
         }
-        this.coins -= cost;
 
-        const items = [...this.pigs, ...this.wings, ...this.particles];
-        const availableItems = items.filter(item => !item.owned && item.id !== 'none');
+        const { item, type } = reward;
+        item.owned = true;
+        const card = this.createRewardCard(item, type);
+        const actions = document.createElement('div');
+        actions.className = 'reward-actions';
+        const collectBtn = document.createElement('button');
+        collectBtn.className = 'collect-reward-btn';
+        collectBtn.textContent = 'Collect';
+        actions.appendChild(collectBtn);
+        card.appendChild(actions);
+        rewardSlot.appendChild(card);
 
-        if (availableItems.length === 0) {
-            alert('You already own all items!');
-            this.coins += cost;
-            return;
-        }
-
-        const randomItem = availableItems[Math.floor(Math.random() * availableItems.length)];
-
-        const pig = this.pigs.find(p => p.id === randomItem.id);
-        const wing = this.wings.find(w => w.id === randomItem.id);
-        const particle = this.particles.find(p => p.id === randomItem.id);
-
-        if (pig) pig.owned = true;
-        else if (wing) wing.owned = true;
-        else if (particle) particle.owned = true;
-
-        alert(`Congratulations! You got: ${randomItem.name}`);
         this.updateStats();
         this.loadLockerItems();
         this.loadShopItems();
         this.saveGameData();
+
+        collectBtn.addEventListener('click', () => {
+            rewardSlot.classList.add('hidden');
+            rewardSlot.classList.remove('reveal');
+            rewardSlot.innerHTML = '';
+            this.pigBankClicks = 0;
+            localStorage.setItem('pigBankClicks', '0');
+            const totalDistanceNow = parseInt(localStorage.getItem('totalDistance') || '0');
+            localStorage.setItem('pigBankDistanceBase', `${totalDistanceNow}`);
+            const pigImage = document.getElementById('pigbank-image') as HTMLImageElement | null;
+            const stageLabel = document.getElementById('pigbank-stage');
+            const progressFill = document.getElementById('pigbank-progress-fill');
+            const clicksLabel = document.getElementById('pigbank-clicks');
+            if (pigImage && stageLabel && progressFill && clicksLabel) {
+                this.updatePigBankUI(pigImage, stageLabel, progressFill, clicksLabel);
+            }
+            this.updatePigBankProgress(totalDistanceNow);
+            this.pigBankCardEl?.classList.remove('hidden');
+            this.pigBankBusy = false;
+        });
+    }
+
+    private pickPigBankReward(): { item: any; type: string } | null {
+        const pigRewards = this.pigs.filter(p => !p.owned);
+        const wingRewards = this.wings.filter(w => !w.owned && w.id !== 'none');
+        const particleRewards = this.particles.filter(p => !p.owned && p.id !== 'none');
+        const pools = [
+            ...pigRewards.map(item => ({ item, type: 'pig' })),
+            ...wingRewards.map(item => ({ item, type: 'wing' })),
+            ...particleRewards.map(item => ({ item, type: 'particle' }))
+        ];
+        if (pools.length === 0) return null;
+        return pools[Math.floor(Math.random() * pools.length)];
+    }
+
+    private createRewardCard(item: any, type: string): HTMLElement {
+        const card = document.createElement('div');
+        card.className = 'reward-card';
+        const iconHtml = (typeof item.icon === 'string' && item.icon.startsWith('/'))
+            ? `<img src="${item.icon}" class="pig-icon-img" alt="${item.name}">`
+            : item.icon;
+        card.innerHTML = `
+            <div class="reward-title">YOU WON!</div>
+            <div class="item-icon">${iconHtml}</div>
+            <div class="item-name">${item.name}</div>
+            <div class="item-status owned">${type.toUpperCase()}</div>
+        `;
+        return card;
     }
 
     private saveSettings(): void {
@@ -585,6 +721,7 @@ export class MenuManager {
 
         this.coins += Math.floor(score / 10);
         this.saveGameData();
+        this.updatePigBankProgress(totalDistance);
     }
 
     private formatTime(seconds: number): string {
