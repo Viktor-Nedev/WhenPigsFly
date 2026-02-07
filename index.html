@@ -254,51 +254,294 @@
             pointer-events: none;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: flex-start;
             padding: 20px;
             box-sizing: border-box;
         }
 
         #hud {
             display: flex;
+            align-items: flex-start;
             justify-content: space-between;
-            font-size: 24px;
-            text-shadow: 0 0 10px #0ff;
+            gap: 20px;
+            width: 100%;
         }
 
-        #game-over {
+        .hud-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            border: 4px solid #ff6bcb;
+            box-shadow:
+                0 10px 25px rgba(255, 107, 203, 0.25),
+                0 0 0 4px white;
+            padding: 12px 18px;
+            pointer-events: auto;
+            min-width: 180px;
+        }
+
+        #score {
+            font-family: 'Luckiest Guy', cursive;
+            font-size: 26px;
+            color: #ff1493;
+            text-shadow: 2px 2px 0 white;
+            letter-spacing: 1px;
+        }
+
+        #distance {
+            font-family: 'Changa One', cursive;
+            font-size: 18px;
+            color: #6bf;
+            margin-top: 6px;
+        }
+
+        .hud-center {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+        }
+
+        #biom-progress-card {
+            width: min(420px, 100%);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Bungee', cursive;
+            color: #ff1493;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 16px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            border: 3px solid #6bf;
+            overflow: hidden;
+        }
+
+        #biom-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #ff6bcb, #6bf);
+            transition: width 0.2s ease;
+        }
+
+        .hud-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hud-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            border: 3px solid white;
+            background: linear-gradient(135deg, #ff6bcb, #ff1493);
+            color: white;
+            font-size: 22px;
+            cursor: pointer;
+            box-shadow: 0 6px 12px rgba(255, 20, 147, 0.3);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .hud-btn:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 10px 18px rgba(255, 20, 147, 0.4);
+        }
+
+        .overlay {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 40px;
-            border: 2px solid #0ff;
-            box-shadow: 0 0 20px #0ff;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: 12000;
             pointer-events: auto;
         }
 
-        #game-over h1 {
-            font-size: 48px;
-            margin-bottom: 20px;
-            background: linear-gradient(90deg, #ff0000, #f0f);
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+        .overlay-card {
+            width: 90%;
+            max-width: 900px;
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 35px;
+            border: 8px solid #ff6bcb;
+            box-shadow:
+                0 20px 40px rgba(255, 107, 203, 0.3),
+                0 0 0 12px white,
+                0 0 0 16px #6bf;
+            overflow: hidden;
         }
 
-        #game-over button {
-            background: transparent;
-            border: 2px solid #f0f;
-            color: #f0f;
-            padding: 15px 30px;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
+        .overlay-card.wide {
+            max-width: 1000px;
         }
+
+        .overlay-header {
+            background: linear-gradient(90deg, #ff6bcb, #ff8ecb, #6bf, #8ac6ff);
+            padding: 25px 35px;
+            border-bottom: 5px dashed white;
+            font-family: 'Luckiest Guy', cursive;
+            font-size: 36px;
+            color: white;
+            text-shadow: 3px 3px 0 #ff1493;
+            text-align: center;
+        }
+
+        .overlay-body {
+            padding: 30px;
+            color: #333;
+            font-family: 'Changa One', cursive;
+        }
+
+        #settings-overlay .overlay-card {
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #settings-overlay .overlay-body {
+            padding: 20px;
+            overflow-y: auto;
+            max-height: calc(90vh - 210px);
+        }
+
+        #how-to-play-modal {
+            align-items: flex-start;
+            padding-top: 40px;
+        }
+
+        .overlay-text {
+            text-align: center;
+            font-size: 20px;
+            color: #666;
+        }
+
+        .overlay-actions {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px 30px 30px;
+            background: linear-gradient(135deg, rgba(255, 107, 203, 0.1), rgba(107, 191, 255, 0.1));
+        }
+
+        .game-btn {
+            background: linear-gradient(135deg, #ff1493, #ff6bcb);
+            border: none;
+            border-radius: 20px;
+            padding: 16px 32px;
+            font-family: 'Luckiest Guy', cursive;
+            font-size: 20px;
+            color: white;
+            border: 4px solid white;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 8px 16px rgba(255, 20, 147, 0.3);
+        }
+
+        .game-btn:hover {
+            transform: translateY(-2px) scale(1.05);
+            background: linear-gradient(135deg, #ff9adf, #ffd1f0) !important;
+            box-shadow: 0 12px 20px rgba(255, 154, 223, 0.6);
+            color: #ff1493 !important;
+        }
+
+        .game-btn.secondary {
+            background: linear-gradient(135deg, #6bf, #8ac6ff);
+        }
+
+        .game-btn.secondary:hover {
+            background: linear-gradient(135deg, #ff9adf, #ffd1f0) !important;
+            color: #ff1493 !important;
+            box-shadow: 0 12px 20px rgba(255, 154, 223, 0.6);
+        }
+
+        .setting-controls select {
+            background: rgba(255, 255, 255, 0.95);
+            color: #ff1493;
+            border: 2px solid rgba(255, 107, 203, 0.6);
+        }
+
+        .setting-controls select option {
+            color: #ff1493;
+            background: white;
+        }
+
+        .control-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 107, 203, 0.35);
+        }
+
+        .control-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            color: #ff1493;
+        }
+
+        .control-key {
+            background: rgba(255, 255, 255, 0.95);
+            color: #ff1493;
+            padding: 6px 10px;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 107, 203, 0.45);
+            cursor: pointer;
+        }
+
+        .flight-stats h3 {
+            text-align: center;
+            font-family: 'Luckiest Guy', cursive;
+            color: #ff1493;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-item {
+            background: linear-gradient(135deg, #ffe6f2, #e6f2ff);
+            border-radius: 18px;
+            padding: 18px;
+            text-align: center;
+            border: 4px solid white;
+        }
+
+        .stat-label {
+            font-family: 'Bungee', cursive;
+            font-size: 14px;
+            color: #6bf;
+            margin-bottom: 8px;
+        }
+
+        #final-score,
+        #final-distance,
+        #final-time,
+        #final-dodged {
+            font-family: 'Luckiest Guy', cursive;
+            font-size: 26px;
+            color: #ff1493;
+        }
+
 
         #game-over button:hover {
             background: #f0f;
@@ -406,6 +649,11 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
 
+        #settings-overlay .controls-section {
+            margin-top: 16px;
+            padding: 14px;
+        }
+
         .controls-section h4 {
             font-family: 'Luckiest Guy', cursive;
             color: #ff6bcb;
@@ -421,6 +669,11 @@
             grid-template-columns: 1fr;
             gap: 12px;
             margin-top: 15px;
+        }
+
+        #settings-overlay .controls-grid {
+            gap: 8px;
+            margin-top: 10px;
         }
 
         .control-item {
@@ -690,14 +943,149 @@
 
     <div id="ui-layer">
         <div id="hud" class="hidden">
-            <div id="score">SCORE: 00000</div>
-            <div id="distance">DIST: 0m</div>
+            <div class="hud-card hud-left">
+                <div id="score">SCORE: 00000</div>
+                <div id="distance">DIST: 0m</div>
+            </div>
+
+            <div class="hud-center">
+                <div id="biom-progress-card" class="hud-card">
+                    <div class="progress-header">
+                        <span id="biom-progress-label">NEXT BIOME</span>
+                        <span id="biom-progress-value">0%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div id="biom-progress-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hud-card hud-buttons">
+                <button id="pause-btn" class="hud-btn" title="Pause">⏸</button>
+                <button id="game-settings-btn" class="hud-btn" title="Settings">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="white" d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58
+                        c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.11-0.2-0.36-0.28-0.57-0.2l-2.39,0.96
+                        c-0.5-0.38-1.04-0.7-1.64-0.94L14.4,2.5c-0.04-0.22-0.24-0.38-0.47-0.38h-3.86
+                        c-0.23,0-0.43,0.16-0.47,0.38L9.24,4.38c-0.6,0.24-1.14,0.56-1.64,0.94L5.21,4.36
+                        c-0.21-0.08-0.46,0-0.57,0.2L2.72,7.88c-0.11,0.2-0.06,0.47,0.12,0.61l2.03,1.58
+                        c-0.04,0.3-0.06,0.62-0.06,0.94c0,0.32,0.02,0.64,0.06,0.94l-2.03,1.58
+                        c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.11,0.2,0.36,0.28,0.57,0.2l2.39-0.96
+                        c0.5,0.38,1.04,0.7,1.64,0.94l0.36,1.88c0.04,0.22,0.24,0.38,0.47,0.38h3.86
+                        c0.23,0,0.43-0.16,0.47-0.38l0.36-1.88c0.6-0.24,1.14-0.56,1.64-0.94l2.39,0.96
+                        c0.21,0.08,0.46,0,0.57-0.2l1.92-3.32c0.11-0.2,0.06-0.47-0.12-0.61L19.14,12.94z
+                        M12,15.6c-1.99,0-3.6-1.61-3.6-3.6s1.61-3.6,3.6-3.6s3.6,1.61,3.6,3.6S13.99,15.6,12,15.6z" />
+                    </svg>
+                </button>
+                <button id="music-btn" class="hud-btn" title="Music"><span id="music-icon">🔊</span></button>
+            </div>
         </div>
 
-        <div id="game-over" class="hidden">
-            <h1>MALFUNCTION</h1>
-            <p id="final-score">FINAL SCORE: 0</p>
-            <button id="restart-btn">REBOOT</button>
+        <div id="pause-overlay" class="overlay hidden">
+            <div class="overlay-card">
+                <div class="overlay-header">GAME PAUSED</div>
+                <div class="overlay-body">
+                    <p class="overlay-text">Take a breather and jump back in when you're ready.</p>
+                </div>
+                <div class="overlay-actions">
+                    <button id="resume-btn" class="game-btn">CONTINUE</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="settings-overlay" class="overlay hidden">
+            <div class="overlay-card wide">
+                <div class="overlay-header">SETTINGS</div>
+                <div class="overlay-body">
+                    <div class="settings-options">
+                        <div class="setting-group">
+                            <label>Music Volume</label>
+                            <div class="setting-controls">
+                                <input type="range" id="game-volume" min="0" max="100" value="70">
+                                <span class="setting-value" id="game-volume-value">70%</span>
+                            </div>
+                        </div>
+
+                        <div class="setting-group">
+                            <label>Sound Effects</label>
+                            <div class="setting-controls">
+                                <input type="range" id="game-sfx" min="0" max="100" value="80">
+                                <span class="setting-value" id="game-sfx-value">80%</span>
+                            </div>
+                        </div>
+
+                        <div class="setting-group">
+                            <label>Controls Type</label>
+                            <div class="setting-controls">
+                                <select id="game-controls">
+                                    <option value="arrows">Arrow Keys</option>
+                                    <option value="ad">A/D Keys</option>
+                                    <option value="both" selected>Both</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="setting-group">
+                            <label>Fullscreen</label>
+                            <div class="setting-controls">
+                                <button id="game-fullscreen-toggle" class="control-btn" type="button">Toggle
+                                    Fullscreen</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="controls-section">
+                        <h4> CUSTOMIZE CONTROLS</h4>
+                        <div class="controls-grid" id="game-controls-grid"></div>
+                        <div class="control-buttons">
+                            <button id="game-reset-controls-btn" class="control-btn reset">
+                                <span></span>
+                                <span>Reset to Default</span>
+                            </button>
+                            <button id="game-save-controls-btn" class="control-btn save">
+                                <span></span>
+                                <span>Save Controls</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-buttons">
+                    <button id="save-game-settings">Save Settings</button>
+                    <button id="game-howto-btn">How to Play</button>
+                    <button id="close-game-settings">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="game-over" class="overlay hidden">
+            <div class="overlay-card">
+                <div class="overlay-header">FLIGHT ENDED</div>
+                <div class="overlay-body">
+                    <div class="flight-stats">
+                        <h3>FLIGHT STATISTICS</h3>
+                        <div class="stats-row">
+                            <div class="stat-item">
+                                <div class="stat-label">SCORE</div>
+                                <div id="final-score">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">DISTANCE</div>
+                                <div id="final-distance">0m</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">TIME</div>
+                                <div id="final-time">0:00</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">OBSTACLES</div>
+                                <div id="final-dodged">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="overlay-actions">
+                    <button id="play-again-btn" class="game-btn">PLAY AGAIN</button>
+                    <button id="menu-btn" class="game-btn secondary">MENU</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -787,19 +1175,19 @@
                             <div class="stats-grid">
                                 <div class="stat-card">
                                     <div class="stat-card-value" id="total-score">0</div>
-                                    <div class="stat-card-label">Total Score</div>
+                                    <div class="stat-card-label">Best Score</div>
                                 </div>
                                 <div class="stat-card">
                                     <div class="stat-card-value" id="total-distance">0m</div>
-                                    <div class="stat-card-label">Distance Flown</div>
+                                    <div class="stat-card-label">Best Distance</div>
                                 </div>
                                 <div class="stat-card">
                                     <div class="stat-card-value" id="obstacles-dodged">0</div>
-                                    <div class="stat-card-label">Obstacles Dodged</div>
+                                    <div class="stat-card-label">Best Obstacles</div>
                                 </div>
                                 <div class="stat-card">
                                     <div class="stat-card-value" id="play-time">0:00</div>
-                                    <div class="stat-card-label">Play Time</div>
+                                    <div class="stat-card-label">Best Time</div>
                                 </div>
                             </div>
                         </div>
@@ -906,24 +1294,21 @@
                                 </div>
 
                                 <div class="setting-group">
-                                    <label>Graphics Quality</label>
+                                    <label>Controls Type</label>
                                     <div class="setting-controls">
-                                        <select id="graphics">
-                                            <option value="low">Low (Cartoon)</option>
-                                            <option value="medium" selected>Medium (Colorful)</option>
-                                            <option value="high">High (Sparkly)</option>
+                                        <select id="controls">
+                                            <option value="arrows">Arrow Keys</option>
+                                            <option value="ad">A/D Keys</option>
+                                            <option value="both" selected>Both</option>
                                         </select>
                                     </div>
                                 </div>
 
                                 <div class="setting-group">
-                                    <label>Controls Type</label>
+                                    <label>Fullscreen</label>
                                     <div class="setting-controls">
-                                        <select id="controls">
-                                            <option value="arrows" selected>Arrow Keys</option>
-                                            <option value="ad">A/D Keys</option>
-                                            <option value="both">Both</option>
-                                        </select>
+                                        <button id="fullscreen-toggle" class="control-btn" type="button">Toggle
+                                            Fullscreen</button>
                                     </div>
                                 </div>
 
@@ -952,66 +1337,6 @@
                             </div>
                         </div>
 
-                        <div id="how-to-play-modal" class="modal hidden">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h2> HOW TO PLAY</h2>
-                                </div>
-                                <div class="modal-body">
-                                    <div class="instructions">
-                                        <div class="instruction-step">
-                                            <span class="step-number">1</span>
-                                            <div class="step-content">
-                                                <h3>FLY YOUR PIG</h3>
-                                                <p>Use <strong>Arrow Keys</strong> or <strong>A/D</strong> to control
-                                                    your flying pig.</p>
-                                            </div>
-                                            <div class="obstacles-demo">
-                                                <div class="control-key">A / D</div>
-                                            </div>
-                                        </div>
-
-                                        <div class="instruction-step">
-                                            <span class="step-number">2</span>
-                                            <div class="step-content">
-                                                <h3>AVOID OBSTACLES</h3>
-                                                <p>Dodge cars, trees, and other obstacles to keep flying!</p>
-                                            </div>
-                                        </div>
-
-                                        <div class="instruction-step">
-                                            <span class="step-number">3</span>
-                                            <div class="step-content">
-                                                <h3>COLLECT COINS</h3>
-                                                <p><strong>Coins = Score</strong> <br> Increase your score to collect
-                                                    coins!</p>
-                                            </div>
-                                            <div class="obstacles-demo">
-                                                <span class="coin">🪙</span>
-                                            </div>
-                                        </div>
-
-                                        <div class="instruction-step">
-                                            <span class="step-number">4</span>
-                                            <div class="step-content">
-                                                <h3>UNLOCK ITEMS</h3>
-                                                <p>Visit the <strong>LOCKER</strong> to customize your pig with
-                                                    different wings and particles!</p>
-                                            </div>
-                                        </div>
-
-                                        <div class="tip-box">
-                                            <span class="tip-icon">💡</span>
-                                            <p><strong>Tip:</strong> The longer you fly, the faster you go and the more
-                                                points you earn!</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button class="close-btn" id="modal-close-btn">GOT IT, LET'S PLAY!</button>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1049,6 +1374,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const howToPlayBtn = document.getElementById('how-to-play-btn');
+            const gameHowToPlayBtn = document.getElementById('game-howto-btn');
             const closeHowToPlay = document.getElementById('close-how-to-play');
             const modalCloseBtn = document.getElementById('modal-close-btn');
             const howToPlayModal = document.getElementById('how-to-play-modal');
@@ -1056,6 +1382,12 @@
 
             if (howToPlayBtn) {
                 howToPlayBtn.addEventListener('click', function () {
+                    howToPlayModal.classList.remove('hidden');
+                });
+            }
+
+            if (gameHowToPlayBtn) {
+                gameHowToPlayBtn.addEventListener('click', function () {
                     howToPlayModal.classList.remove('hidden');
                 });
             }
@@ -1304,7 +1636,7 @@
     <div id="insufficient-funds-modal" class="modal hidden">
         <div class="modal-content modal-neon">
             <div class="modal-header header-warning">
-                <h2>⚠️ OOPS!</h2>
+                <h2> OOPS!</h2>
             </div>
             <div class="modal-body text-center">
                 <div class="warning-icon">🪙</div>
@@ -1313,6 +1645,67 @@
             </div>
             <div class="modal-footer">
                 <button class="close-btn glow-btn" id="funds-modal-close">GOT IT!</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="how-to-play-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2> HOW TO PLAY</h2>
+            </div>
+            <div class="modal-body">
+                <div class="instructions">
+                    <div class="instruction-step">
+                        <span class="step-number">1</span>
+                        <div class="step-content">
+                            <h3>FLY YOUR PIG</h3>
+                            <p>Use <strong>Arrow Keys</strong> or <strong>A/D</strong> to control
+                                your flying pig.</p>
+                        </div>
+                        <div class="obstacles-demo">
+                            <div class="control-key">A / D</div>
+                        </div>
+                    </div>
+
+                    <div class="instruction-step">
+                        <span class="step-number">2</span>
+                        <div class="step-content">
+                            <h3>AVOID OBSTACLES</h3>
+                            <p>Dodge cars, trees, and other obstacles to keep flying!</p>
+                        </div>
+                    </div>
+
+                    <div class="instruction-step">
+                        <span class="step-number">3</span>
+                        <div class="step-content">
+                            <h3>COLLECT COINS</h3>
+                            <p><strong>Coins = Score</strong> <br> Increase your score to collect
+                                coins!</p>
+                        </div>
+                        <div class="obstacles-demo">
+                            <span class="coin">🪙</span>
+                        </div>
+                    </div>
+
+                    <div class="instruction-step">
+                        <span class="step-number">4</span>
+                        <div class="step-content">
+                            <h3>UNLOCK ITEMS</h3>
+                            <p>Visit the <strong>LOCKER</strong> to customize your pig with
+                                different wings and particles!</p>
+                        </div>
+                    </div>
+
+                    <div class="tip-box">
+                        <span class="tip-icon">💡</span>
+                        <p><strong>Tip:</strong> The longer you fly, the faster you go and the more
+                            points you earn!</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="close-btn" id="modal-close-btn">GOT IT, LET'S PLAY!</button>
             </div>
         </div>
     </div>

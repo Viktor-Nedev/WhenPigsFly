@@ -4,18 +4,18 @@ export class MenuManager {
     private menuRenderer: MenuRenderer | null = null;
     private game: any;
     private coins: number = 5000;
-    private selectedPig: string = 'basic';
+    private selectedPig: string = 'minecraft';
     private selectedWing: string = 'none';
     private selectedParticle: string = 'none';
 
     private pigs = [
-        { id: 'basic', name: 'Original Pig', model: '/pig.glb', icon: '/images/shop/pixelpig.png', speed: 5.0, agility: 3.0, luck: 2.0, owned: true, selected: true, color: '#ffadc7' },
+        { id: 'basic', name: 'Original Pig', model: '/pig.glb', icon: '/images/shop/pixelpig.png', speed: 5.0, agility: 3.0, luck: 2.0, owned: false, price: 0, color: '#ffadc7' },
         { id: 'cute_stylized', name: 'Mud Pig', model: '/assets/3D_Models/Pigs/cute_stylized_pig_low_poly_game_ready.glb', icon: '/images/shop/mudpig.png', speed: 5.2, agility: 3.5, luck: 2.0, owned: false, price: 100 },
         { id: 'elegant', name: 'Elegant Pig', model: '/assets/3D_Models/Pigs/elegant_pig.glb', icon: '/images/shop/elegant_minecraft_pig.png', speed: 5.5, agility: 3.2, luck: 2.5, owned: false, price: 300 },
         { id: 'foreman', name: 'Foreman Pig', model: '/assets/3D_Models/Pigs/foreman_pig.glb', icon: '/images/shop/foreman.png', speed: 5.0, agility: 3.0, luck: 4.0, owned: false, price: 500 },
         { id: 'hamm', name: 'Toy Hamm', model: '/assets/3D_Models/Pigs/kingdom_hearts_iii_-_hamm.glb', icon: '/images/shop/hamm.png', speed: 5.0, agility: 4.0, luck: 3.0, owned: false, price: 400 },
         { id: 'lowpoly', name: 'Pixel Pig', model: '/assets/3D_Models/Pigs/low-poly_pig.glb', icon: '/images/shop/pixelpig.png', speed: 5.8, agility: 4.5, luck: 2.0, owned: false, price: 200 },
-        { id: 'minecraft', name: 'Minecraft Pig', model: '/assets/3D_Models/Pigs/minecraft_-_pig.glb', icon: '/images/shop/minecraftpig.png', speed: 5.0, agility: 3.0, luck: 2.0, owned: false, price: 300 },
+        { id: 'minecraft', name: 'Minecraft Pig', model: '/assets/3D_Models/Pigs/minecraft_-_pig.glb', icon: '/images/shop/minecraftpig.png', speed: 5.0, agility: 3.0, luck: 2.0, owned: true, selected: true, color: '#ffadc7' },
         { id: 'king_pig', name: 'King Pig', model: '/assets/3D_Models/Pigs/mobile_-_angry_birds_go_-_king_pig.glb', icon: '/images/shop/kingpig.png', speed: 4.0, agility: 2.0, luck: 8.0, owned: false, price: 500 },
         { id: 'waddles', name: 'Mr. Waddles', model: '/assets/3D_Models/Pigs/mr_waddles_gravity_falls.glb', icon: '/images/shop/mrwaddles.png', speed: 5.0, agility: 5.0, luck: 5.0, owned: false, price: 500 },
         { id: 'muddy', name: 'Durty Pig', model: '/assets/3D_Models/Pigs/muddy_pig.glb', icon: '/images/shop/durtyminecraftpig.png', speed: 5.2, agility: 3.2, luck: 3.5, owned: false, price: 500 },
@@ -23,7 +23,7 @@ export class MenuManager {
         { id: 'crown', name: 'Technoblade', model: '/assets/3D_Models/Pigs/pig_with_crown.glb', icon: '/images/shop/technoblade.png', speed: 6.0, agility: 3.5, luck: 6.0, owned: false, price: 800 },
         { id: 'piglet', name: 'Piglet', model: '/assets/3D_Models/Pigs/piglet.glb', icon: '/images/shop/piglet.png', speed: 7.0, agility: 5.5, luck: 1.0, owned: false, price: 1000 },
         { id: 'porky', name: 'Porky Pig', model: '/assets/3D_Models/Pigs/porky_pig.glb', icon: '/images/shop/porky.png', speed: 5.8, agility: 4.2, luck: 3.0, owned: false, price: 1000 },
-        { id: 'pumba', name: 'Pumba', model: '/assets/3D_Models/Pigs/pumba.glb', icon: '/images/shop/pumba.png', speed: 4.5, agility: 2.5, luck: 4.5, owned: false, price: 1000 },
+        { id: 'pumba', name: 'Pumba', model: '/assets/3D_Models/Pigs/pumba.glb', icon: '/images/shop/pumba.png', speed: 4.5, agility: 2.5, luck: 4.5, owned: false, price: 1000 }
     ];
 
 
@@ -136,6 +136,7 @@ export class MenuManager {
 
         document.getElementById('save-settings')?.addEventListener('click', () => this.saveSettings());
         document.getElementById('reset-progress')?.addEventListener('click', () => this.resetProgress());
+        document.getElementById('fullscreen-toggle')?.addEventListener('click', () => this.toggleFullscreen());
 
         document.querySelectorAll('.open-chest-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -383,10 +384,10 @@ export class MenuManager {
     }
 
     private updateStats(): void {
-        const totalScore = localStorage.getItem('totalScore') || '0';
-        const totalDistance = localStorage.getItem('totalDistance') || '0';
-        const obstaclesDodged = localStorage.getItem('obstaclesDodged') || '0';
-        const playTime = localStorage.getItem('playTime') || '0:00';
+        const bestScore = localStorage.getItem('bestScore') || localStorage.getItem('totalScore') || '0';
+        const bestDistance = localStorage.getItem('bestDistance') || localStorage.getItem('totalDistance') || '0';
+        const bestObstacles = localStorage.getItem('bestObstacles') || localStorage.getItem('obstaclesDodged') || '0';
+        const bestTime = localStorage.getItem('bestTime') || localStorage.getItem('playTime') || '0:00';
 
         const totalScoreElement = document.getElementById('total-score');
         const totalDistanceElement = document.getElementById('total-distance');
@@ -394,14 +395,14 @@ export class MenuManager {
         const playTimeElement = document.getElementById('play-time');
         const coinsAmountElement = document.getElementById('coins-amount');
 
-        if (totalScoreElement) totalScoreElement.textContent = totalScore;
-        if (totalDistanceElement) totalDistanceElement.textContent = `${totalDistance}m`;
-        if (obstaclesDodgedElement) obstaclesDodgedElement.textContent = obstaclesDodged;
-        if (playTimeElement) playTimeElement.textContent = playTime;
+        if (totalScoreElement) totalScoreElement.textContent = bestScore;
+        if (totalDistanceElement) totalDistanceElement.textContent = `${bestDistance}m`;
+        if (obstaclesDodgedElement) obstaclesDodgedElement.textContent = bestObstacles;
+        if (playTimeElement) playTimeElement.textContent = bestTime;
         if (coinsAmountElement) coinsAmountElement.textContent = this.coins.toString();
 
         const quickScoreElement = document.getElementById('quick-score');
-        if (quickScoreElement) quickScoreElement.textContent = totalScore;
+        if (quickScoreElement) quickScoreElement.textContent = bestScore;
 
         this.updateFlightsList();
     }
@@ -467,27 +468,33 @@ export class MenuManager {
     private saveSettings(): void {
         const volume = (document.getElementById('volume') as HTMLInputElement)?.value || '70';
         const sfx = (document.getElementById('sfx') as HTMLInputElement)?.value || '80';
-        const graphics = (document.getElementById('graphics') as HTMLSelectElement)?.value || 'medium';
-        const controls = (document.getElementById('controls') as HTMLSelectElement)?.value || 'arrows';
+        const controls = (document.getElementById('controls') as HTMLSelectElement)?.value || 'both';
 
         localStorage.setItem('volume', volume);
         localStorage.setItem('sfx', sfx);
-        localStorage.setItem('graphics', graphics);
         localStorage.setItem('controls', controls);
         alert('Settings saved!');
+    }
+
+    private toggleFullscreen(): void {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen?.().catch(() => undefined);
+        } else {
+            document.exitFullscreen?.().catch(() => undefined);
+        }
     }
 
     private resetProgress(): void {
         if (confirm('Are you sure you want to reset all progress? This cannot be undone!')) {
             localStorage.clear();
             this.coins = 1000;
-            this.selectedPig = 'basic';
+            this.selectedPig = 'minecraft';
             this.selectedWing = 'none';
             this.selectedParticle = 'none';
 
             this.pigs.forEach(pig => {
-                pig.owned = pig.id === 'basic';
-                pig.selected = pig.id === 'basic';
+                pig.owned = pig.id === 'minecraft';
+                pig.selected = pig.id === 'minecraft';
             });
             this.wings.forEach(wing => {
                 wing.owned = wing.id === 'none';
@@ -527,6 +534,8 @@ export class MenuManager {
                 this.selectedWing = data.selectedWing || this.selectedWing;
                 this.selectedParticle = data.selectedParticle || this.selectedParticle;
 
+                const hasSelected = this.pigs.some(pig => pig.id === this.selectedPig);
+                if (!hasSelected) this.selectedPig = 'minecraft';
                 this.pigs.forEach(pig => {
                     if (data.pigsOwned?.includes(pig.id)) pig.owned = true;
                     pig.selected = pig.id === this.selectedPig;
@@ -562,17 +571,26 @@ export class MenuManager {
         console.log('Game Data Saved.');
     }
 
-    public updateGameStats(score: number, distance: number): void {
+    public updateGameStats(score: number, distance: number, timeSeconds: number, obstaclesDodged: number): void {
         const totalScore = parseInt(localStorage.getItem('totalScore') || '0') + Math.floor(score);
         const totalDistance = parseInt(localStorage.getItem('totalDistance') || '0') + Math.floor(distance);
-        const obstaclesDodged = parseInt(localStorage.getItem('obstaclesDodged') || '0') + Math.floor(score / 100);
+        const totalObstacles = parseInt(localStorage.getItem('obstaclesDodged') || '0') + Math.floor(obstaclesDodged);
+        const totalTimeSeconds = parseInt(localStorage.getItem('playTimeSeconds') || '0') + Math.floor(timeSeconds);
 
         localStorage.setItem('totalScore', totalScore.toString());
         localStorage.setItem('totalDistance', totalDistance.toString());
-        localStorage.setItem('obstaclesDodged', obstaclesDodged.toString());
+        localStorage.setItem('obstaclesDodged', totalObstacles.toString());
+        localStorage.setItem('playTimeSeconds', totalTimeSeconds.toString());
+        localStorage.setItem('playTime', this.formatTime(totalTimeSeconds));
 
         this.coins += Math.floor(score / 10);
         this.saveGameData();
+    }
+
+    private formatTime(seconds: number): string {
+        const minutes = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${minutes}:${secs.toString().padStart(2, '0')}`;
     }
 
     private showInsufficientFundsModal(): void {

@@ -24,7 +24,7 @@ export class Game {
     private wingMixer: THREE.AnimationMixer | null = null;
     private wingClock: THREE.Clock = new THREE.Clock();
     private activeWingId: string = 'none';
-    private activePigId: string = 'basic';
+    private activePigId: string = 'minecraft';
     private leftWingPart: THREE.Object3D | null = null;
     private rightWingPart: THREE.Object3D | null = null;
     private objectMixers: THREE.AnimationMixer[] = [];
@@ -111,10 +111,8 @@ export class Game {
     private cityRockLastZ: number[] = [-Infinity, -Infinity];
     private cityRockMaterial: THREE.MeshLambertMaterial | null = null;
 
-    private desertGroundModels: THREE.Group[] = [];
     private desertObstacleModels: THREE.Group[] = [];
     private desertDecorationModels: THREE.Group[] = [];
-    private desertBorderModels: THREE.Group[] = [];
     private desertBorderLastZ: number[] = [-Infinity, -Infinity];
     private desertGroundTemplate: THREE.Group | null = null;
     private desertObstacleLastZ: number[] = [-Infinity, -Infinity, -Infinity];
@@ -134,12 +132,24 @@ export class Game {
     private isShiftPressed: boolean = false;
     private isPPressed: boolean = false;
     private isPaused: boolean = false;
+    private isMusicOn: boolean = true;
+    private wasPausedBeforeSettings: boolean = false;
+    private flightStartTime: number = 0;
+    private flightObstaclesDodged: number = 0;
     private rotationAngle: number = 0;
     private mousePosition: { x: number, y: number } = { x: 0, y: 0 };
     private cameraOriginalY: number = 10;
     private isRotating: boolean = false;
     private rotationProgress: number = 0;
     private rotationDuration: number = 2;
+    private controlBindings: Record<string, string[] | string> = {};
+    private gameControlsState: {
+        grid: HTMLElement;
+        saveBtn: HTMLButtonElement;
+        resetBtn: HTMLButtonElement;
+        currentControls: Record<string, string[] | string>;
+    } | null = null;
+    private isRebindingControls: boolean = false;
 
     constructor() {
         this.scene = new THREE.Scene();
@@ -166,6 +176,7 @@ export class Game {
         }).catch(err => console.error("Error loading assets:", err));
 
         this.setupControls();
+        this.setupUiButtons();
         this.animate();
     }
 
@@ -178,6 +189,8 @@ export class Game {
         this.renderer.domElement.addEventListener('mousemove', (e: MouseEvent) => this.onMouseMove(e));
         this.renderer.domElement.addEventListener('mouseup', () => this.onMouseUp());
         this.renderer.domElement.addEventListener('mouseleave', () => this.onMouseUp());
+
+        this.loadControlBindings();
     }
 
     private onMouseDown(e: MouseEvent) {
@@ -203,7 +216,8 @@ export class Game {
     }
 
     private onKeyDown(e: KeyboardEvent) {
-        if (e.code === 'KeyP') {
+        if (this.isRebindingControls) return;
+        if (this.isActionKey('Pause Game', e.code)) {
             if (!this.isPPressed) {
                 this.isPPressed = true;
                 this.togglePause();
@@ -211,7 +225,7 @@ export class Game {
             return;
         }
 
-        if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+        if (this.isActionKey('Rotate Pig', e.code)) {
             if (!this.isShiftPressed && !this.isRotating && this.gameActive && !this.isPaused) {
                 this.isShiftPressed = true;
                 this.isRotating = true;
@@ -228,34 +242,406 @@ export class Game {
             return;
         }
 
-        if (e.code === 'ArrowLeft' || e.code === 'KeyA') this.currentLane = Math.min(1, this.currentLane + 1);
-        else if (e.code === 'ArrowRight' || e.code === 'KeyD') this.currentLane = Math.max(-1, this.currentLane - 1);
+        if (this.isActionKey('Move Left', e.code)) this.currentLane = Math.min(1, this.currentLane + 1);
+        else if (this.isActionKey('Move Right', e.code)) this.currentLane = Math.max(-1, this.currentLane - 1);
 
         const laneWidth = (this.currentBiom === 'city') ? this.cityLaneWidth : this.laneWidth;
         this.targetX = this.currentLane * laneWidth;
     }
 
     private onKeyUp(e: KeyboardEvent) {
-        if (e.code === 'KeyP') {
+        if (this.isActionKey('Pause Game', e.code)) {
             this.isPPressed = false;
-        } else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+        } else if (this.isActionKey('Rotate Pig', e.code)) {
             this.isShiftPressed = false;
+        }
+    }
+
+    private getDefaultControls(): Record<string, string[] | string> {
+        const controlsType = localStorage.getItem('controls') || 'both';
+        let leftKeys: string[] = ['ArrowLeft'];
+        let rightKeys: string[] = ['ArrowRight'];
+        if (controlsType === 'ad') {
+            leftKeys = ['KeyA'];
+            rightKeys = ['KeyD'];
+        } else if (controlsType === 'both') {
+            leftKeys = ['ArrowLeft', 'KeyA'];
+            rightKeys = ['ArrowRight', 'KeyD'];
+        }
+
+        return {
+            'Move Left': leftKeys,
+            'Move Right': rightKeys,
+            'Pause Game': ['KeyP'],
+            'Rotate Pig': ['ShiftLeft', 'ShiftRight'],
+            'Camera Control': 'Left Mouse Button'
+        };
+    }
+
+    private loadControlBindings(): void {
+        const savedControls = JSON.parse(localStorage.getItem('pigGameControls') || '{}');
+        const defaultControls = this.getDefaultControls();
+        this.controlBindings = { ...defaultControls, ...savedControls };
+
+        if (this.gameControlsState) {
+            this.gameControlsState.currentControls = { ...defaultControls, ...savedControls };
+            this.renderGameControlsGrid();
+        }
+    }
+
+    private isActionKey(action: string, code: string): boolean {
+        const binding = this.controlBindings[action];
+        return Array.isArray(binding) ? binding.includes(code) : false;
+    }
+
+    private formatKeyLabel(key: string): string {
+        return key
+            .replace('Key', '')
+            .replace('Arrow', '→')
+            .replace('Left', '←')
+            .replace('Right', '→')
+            .replace('Digit', '')
+            .replace('ShiftLeft', 'L Shift')
+            .replace('ShiftRight', 'R Shift')
+            .replace('Space', 'Space');
+    }
+
+    private initGameControlsEditor(): void {
+        if (this.gameControlsState) return;
+        const controlsGrid = document.getElementById('game-controls-grid');
+        const resetControlsBtn = document.getElementById('game-reset-controls-btn') as HTMLButtonElement | null;
+        const saveControlsBtn = document.getElementById('game-save-controls-btn') as HTMLButtonElement | null;
+        if (!controlsGrid || !resetControlsBtn || !saveControlsBtn) return;
+
+        const savedControls = JSON.parse(localStorage.getItem('pigGameControls') || '{}');
+        const defaultControls = this.getDefaultControls();
+        const currentControls = { ...defaultControls, ...savedControls };
+
+        this.gameControlsState = {
+            grid: controlsGrid,
+            saveBtn: saveControlsBtn,
+            resetBtn: resetControlsBtn,
+            currentControls
+        };
+
+        this.renderGameControlsGrid();
+
+        saveControlsBtn.addEventListener('click', () => this.saveGameControls());
+        resetControlsBtn.addEventListener('click', () => {
+            if (confirm(' Reset all controls to default settings?\nThis cannot be undone!')) {
+                if (!this.gameControlsState) return;
+                this.gameControlsState.currentControls = { ...this.getDefaultControls() };
+                this.saveGameControls();
+                const originalText = resetControlsBtn.innerHTML;
+                resetControlsBtn.innerHTML = '<span></span><span>Reset Complete!</span>';
+                resetControlsBtn.style.background = 'linear-gradient(135deg, #6bf, #0066cc)';
+                setTimeout(() => {
+                    resetControlsBtn.innerHTML = originalText;
+                    resetControlsBtn.style.background = '';
+                }, 1500);
+            }
+        });
+    }
+
+    private saveGameControls(): void {
+        if (!this.gameControlsState) return;
+        localStorage.setItem('pigGameControls', JSON.stringify(this.gameControlsState.currentControls));
+        this.controlBindings = { ...this.getDefaultControls(), ...this.gameControlsState.currentControls };
+        this.renderGameControlsGrid();
+
+        const originalText = this.gameControlsState.saveBtn.innerHTML;
+        this.gameControlsState.saveBtn.innerHTML = '<span></span><span>Controls Saved!</span>';
+        this.gameControlsState.saveBtn.style.background = 'linear-gradient(135deg, #00cc66, #00994d)';
+        setTimeout(() => {
+            this.gameControlsState?.saveBtn && (this.gameControlsState.saveBtn.innerHTML = originalText);
+            this.gameControlsState?.saveBtn && (this.gameControlsState.saveBtn.style.background = '');
+        }, 1500);
+    }
+
+    private renderGameControlsGrid(): void {
+        if (!this.gameControlsState) return;
+        const { grid, currentControls } = this.gameControlsState;
+        grid.innerHTML = '';
+
+        Object.entries(currentControls).forEach(([action, keys]) => {
+            const controlItem = document.createElement('div');
+            controlItem.className = 'control-item';
+
+            const label = document.createElement('div');
+            label.className = 'control-label';
+            let icon = '🎮';
+            if (action.includes('Move')) icon = '↔';
+            if (action.includes('Pause')) icon = '⏸';
+            if (action.includes('Rotate')) icon = '';
+            if (action.includes('Camera')) icon = '';
+            label.innerHTML = `<span>${icon}</span><span>${action}</span>`;
+
+            const keyDiv = document.createElement('div');
+            keyDiv.className = 'control-key';
+
+            if (typeof keys === 'string') {
+                keyDiv.textContent = keys;
+                keyDiv.style.cursor = 'default';
+            } else {
+                const keysText = keys.map(key => this.formatKeyLabel(key)).join(' / ');
+                keyDiv.textContent = keysText;
+
+                keyDiv.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (this.isRebindingControls) return;
+                    this.isRebindingControls = true;
+                    keyDiv.classList.add('editing');
+                    keyDiv.textContent = 'Press any key...';
+                    keyDiv.style.background = 'linear-gradient(135deg, #ff1493, #6bf)';
+
+                    let cancelEdit: ((event: MouseEvent) => void) | null = null;
+                    const keyListener = (event: KeyboardEvent) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+
+                        const newKey = event.code;
+                        const isAlreadyUsed = Object.entries(currentControls)
+                            .some(([otherAction, otherKeys]) =>
+                                otherAction !== action && Array.isArray(otherKeys) && otherKeys.includes(newKey)
+                            );
+
+                        if (isAlreadyUsed) {
+                            alert('⚠️ This key is already assigned to another action!');
+                            keyDiv.classList.remove('editing');
+                            keyDiv.textContent = keysText;
+                            keyDiv.style.background = '';
+                            this.isRebindingControls = false;
+                            if (cancelEdit) document.removeEventListener('click', cancelEdit);
+                            return;
+                        }
+
+                        currentControls[action] = [newKey];
+                        keyDiv.classList.remove('editing');
+                        keyDiv.textContent = this.formatKeyLabel(newKey);
+                        keyDiv.style.background = 'linear-gradient(135deg, #00cc66, #6bf)';
+                        setTimeout(() => {
+                            keyDiv.style.background = '';
+                        }, 1000);
+
+                        this.isRebindingControls = false;
+                        this.saveGameControls();
+                        if (cancelEdit) document.removeEventListener('click', cancelEdit);
+                    };
+
+                    document.addEventListener('keydown', keyListener, { once: true });
+
+                    cancelEdit = (event: MouseEvent) => {
+                        if (!keyDiv.contains(event.target as Node)) {
+                            keyDiv.classList.remove('editing');
+                            keyDiv.textContent = keysText;
+                            keyDiv.style.background = '';
+                            this.isRebindingControls = false;
+                            document.removeEventListener('keydown', keyListener);
+                            if (cancelEdit) document.removeEventListener('click', cancelEdit);
+                        }
+                    };
+
+                    setTimeout(() => {
+                        document.addEventListener('click', cancelEdit);
+                    }, 0);
+                });
+            }
+
+            controlItem.appendChild(label);
+            controlItem.appendChild(keyDiv);
+            grid.appendChild(controlItem);
+        });
+    }
+
+    private toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen?.().catch(() => undefined);
+        } else {
+            document.exitFullscreen?.().catch(() => undefined);
         }
     }
 
     private togglePause() {
         if (!this.gameActive) return;
-
-        this.isPaused = !this.isPaused;
-
-        const pauseElement = document.getElementById('pause');
-        if (pauseElement) {
-            if (this.isPaused) {
-                pauseElement.classList.remove('hidden');
-            } else {
-                pauseElement.classList.add('hidden');
-            }
+        const settingsOverlay = document.getElementById('settings-overlay');
+        if (settingsOverlay && !settingsOverlay.classList.contains('hidden')) {
+            this.closeSettings();
+            return;
         }
+        this.setPaused(!this.isPaused, true);
+    }
+
+    private setPaused(paused: boolean, showOverlay: boolean) {
+        this.isPaused = paused;
+        const pauseOverlay = document.getElementById('pause-overlay');
+        if (pauseOverlay) {
+            if (paused && showOverlay) pauseOverlay.classList.remove('hidden');
+            else pauseOverlay.classList.add('hidden');
+        }
+    }
+
+    private setupUiButtons() {
+        const pauseBtn = document.getElementById('pause-btn');
+        const resumeBtn = document.getElementById('resume-btn');
+        const settingsBtn = document.getElementById('game-settings-btn');
+        const closeSettingsBtn = document.getElementById('close-game-settings');
+        const saveSettingsBtn = document.getElementById('save-game-settings');
+        const musicBtn = document.getElementById('music-btn');
+        const playAgainBtn = document.getElementById('play-again-btn');
+        const menuBtn = document.getElementById('menu-btn');
+        const howToBtn = document.getElementById('game-howto-btn');
+        const fullscreenBtn = document.getElementById('game-fullscreen-toggle');
+
+        pauseBtn?.addEventListener('click', () => this.togglePause());
+        resumeBtn?.addEventListener('click', () => this.setPaused(false, true));
+        settingsBtn?.addEventListener('click', () => this.openSettings());
+        closeSettingsBtn?.addEventListener('click', () => this.closeSettings());
+        saveSettingsBtn?.addEventListener('click', () => this.saveGameSettings());
+        musicBtn?.addEventListener('click', () => this.toggleMusic());
+        playAgainBtn?.addEventListener('click', () => {
+            const gameOver = document.getElementById('game-over');
+            if (gameOver) gameOver.classList.add('hidden');
+            this.startGame();
+        });
+        menuBtn?.addEventListener('click', () => {
+            const gameOver = document.getElementById('game-over');
+            if (gameOver) gameOver.classList.add('hidden');
+            if (window.menuAnimation) window.menuAnimation.showMenu();
+        });
+        howToBtn?.addEventListener('click', () => {
+            const modal = document.getElementById('how-to-play-modal');
+            if (modal) modal.classList.remove('hidden');
+        });
+        fullscreenBtn?.addEventListener('click', () => this.toggleFullscreen());
+
+        this.syncGameSettingsInputs();
+        this.bindGameSettingsInputs();
+        this.updateMusicIndicator();
+        this.initGameControlsEditor();
+    }
+
+    private openSettings() {
+        if (!this.gameActive) return;
+        this.wasPausedBeforeSettings = this.isPaused;
+        this.setPaused(true, false);
+        const settingsOverlay = document.getElementById('settings-overlay');
+        if (settingsOverlay) settingsOverlay.classList.remove('hidden');
+        this.syncGameSettingsInputs();
+        this.loadControlBindings();
+    }
+
+    private closeSettings() {
+        const settingsOverlay = document.getElementById('settings-overlay');
+        if (settingsOverlay) settingsOverlay.classList.add('hidden');
+        if (this.wasPausedBeforeSettings) {
+            this.setPaused(true, true);
+        } else {
+            this.setPaused(false, false);
+        }
+    }
+
+    private toggleMusic() {
+        this.isMusicOn = !this.isMusicOn;
+        this.updateMusicIndicator();
+    }
+
+    private updateMusicIndicator() {
+        const icon = document.getElementById('music-icon');
+        if (icon) icon.textContent = this.isMusicOn ? '🔊' : '🔇';
+        const btn = document.getElementById('music-btn');
+        if (btn) btn.setAttribute('aria-pressed', this.isMusicOn ? 'false' : 'true');
+    }
+
+    private syncGameSettingsInputs() {
+        const volume = localStorage.getItem('volume') || '70';
+        const sfx = localStorage.getItem('sfx') || '80';
+        const controls = localStorage.getItem('controls') || 'both';
+
+        const volumeInput = document.getElementById('game-volume') as HTMLInputElement | null;
+        const sfxInput = document.getElementById('game-sfx') as HTMLInputElement | null;
+        const controlsSelect = document.getElementById('game-controls') as HTMLSelectElement | null;
+
+        if (volumeInput) volumeInput.value = volume;
+        if (sfxInput) sfxInput.value = sfx;
+        if (controlsSelect) controlsSelect.value = controls;
+
+        const volumeValue = document.getElementById('game-volume-value');
+        const sfxValue = document.getElementById('game-sfx-value');
+        if (volumeValue) volumeValue.textContent = `${volume}%`;
+        if (sfxValue) sfxValue.textContent = `${sfx}%`;
+    }
+
+    private bindGameSettingsInputs() {
+        const volumeInput = document.getElementById('game-volume') as HTMLInputElement | null;
+        const sfxInput = document.getElementById('game-sfx') as HTMLInputElement | null;
+
+        volumeInput?.addEventListener('input', (e) => {
+            const value = (e.target as HTMLInputElement).value;
+            const volumeValue = document.getElementById('game-volume-value');
+            if (volumeValue) volumeValue.textContent = `${value}%`;
+        });
+
+        sfxInput?.addEventListener('input', (e) => {
+            const value = (e.target as HTMLInputElement).value;
+            const sfxValue = document.getElementById('game-sfx-value');
+            if (sfxValue) sfxValue.textContent = `${value}%`;
+        });
+    }
+
+    private saveGameSettings() {
+        const volume = (document.getElementById('game-volume') as HTMLInputElement)?.value || '70';
+        const sfx = (document.getElementById('game-sfx') as HTMLInputElement)?.value || '80';
+        const controls = (document.getElementById('game-controls') as HTMLSelectElement)?.value || 'both';
+
+        localStorage.setItem('volume', volume);
+        localStorage.setItem('sfx', sfx);
+        localStorage.setItem('controls', controls);
+
+        const menuVolume = document.getElementById('volume') as HTMLInputElement | null;
+        const menuSfx = document.getElementById('sfx') as HTMLInputElement | null;
+        const menuControls = document.getElementById('controls') as HTMLSelectElement | null;
+        const menuVolumeValue = document.getElementById('volume-value');
+        const menuSfxValue = document.getElementById('sfx-value');
+
+        if (menuVolume) menuVolume.value = volume;
+        if (menuSfx) menuSfx.value = sfx;
+        if (menuControls) menuControls.value = controls;
+        if (menuVolumeValue) menuVolumeValue.textContent = `${volume}%`;
+        if (menuSfxValue) menuSfxValue.textContent = `${sfx}%`;
+
+        this.loadControlBindings();
+    }
+
+    private updateBiomProgress() {
+        if (!this.gameActive) return;
+        const fill = document.getElementById('biom-progress-fill') as HTMLElement | null;
+        const label = document.getElementById('biom-progress-label');
+        const value = document.getElementById('biom-progress-value');
+
+        const score = this.score;
+        const stage = this.getBiomStage();
+        const total = stage.end - stage.start;
+        const progress = total > 0 ? Math.max(0, Math.min(1, (score - stage.start) / total)) : 1;
+        if (fill) fill.style.width = `${Math.round(progress * 100)}%`;
+        if (label) label.textContent = `NEXT BIOME: ${stage.next}`;
+        if (value) value.textContent = `${Math.round(progress * 100)}%`;
+    }
+
+    private getBiomStage() {
+        const biom = this.currentBiom;
+        if (biom === 'intro') return { start: 0, end: 1, next: 'CLOUDS' };
+        if (biom === 'desert' || biom === 'transitioning_to_sky') return { start: 200, end: 400, next: 'SKY' };
+        if (biom === 'sky' || biom === 'transitioning_to_city') return { start: 400, end: 600, next: 'CITY' };
+        if (biom === 'city') return { start: 600, end: 600, next: 'MAX' };
+        if (biom === 'transitioning_to_desert') return { start: 0, end: 200, next: 'DESERT' };
+        if (biom === 'clouds') return { start: 0, end: 200, next: 'DESERT' };
+        return { start: 0, end: 200, next: 'DESERT' };
+    }
+
+    private formatTime(seconds: number) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
 
     private async loadNatureAssets() {
@@ -542,7 +928,6 @@ export class Game {
     private async loadDesertAssets() {
         this.desertDecorationModels = [];
         this.desertObstacleModels = [];
-        this.desertBorderModels = [];
 
         const desertGlbFiles = [
             '/assets/3D_Models/Bioms/Desert/cactus.glb',
@@ -553,9 +938,6 @@ export class Game {
             '/assets/3D_Models/Bioms/Desert/desert_rocks (1).glb'
         ];
         const desertTextureBase = '/assets/3D_Models/Bioms/Desert/TEXTURES/EGYPTIAN FLOOR ENTRANCE.fbm/entrada piso_DefaultMaterial_BaseColor.png';
-        const desertTextureNormal = '/assets/3D_Models/Bioms/Desert/TEXTURES/EGYPTIAN FLOOR ENTRANCE.fbm/entrada piso_DefaultMaterial_Normal.png';
-        const desertTextureRough = '/assets/3D_Models/Bioms/Desert/TEXTURES/EGYPTIAN FLOOR ENTRANCE.fbm/entrada piso_DefaultMaterial_Roughness.png';
-        const desertTextureMetal = '/assets/3D_Models/Bioms/Desert/TEXTURES/EGYPTIAN FLOOR ENTRANCE.fbm/entrada piso_DefaultMaterial_Metallic.png';
 
         const ensureMaterials = (object: THREE.Object3D, color: number = 0xd9b37c) => {
             object.traverse((child: THREE.Object3D) => {
@@ -572,12 +954,7 @@ export class Game {
             });
         };
 
-        const [map, normalMap, roughnessMap, metalnessMap] = await Promise.all([
-            this.textureLoader.loadAsync(encodeURI(desertTextureBase)),
-            this.textureLoader.loadAsync(encodeURI(desertTextureNormal)),
-            this.textureLoader.loadAsync(encodeURI(desertTextureRough)),
-            this.textureLoader.loadAsync(encodeURI(desertTextureMetal))
-        ]);
+        const map = await this.textureLoader.loadAsync(encodeURI(desertTextureBase));
         map.colorSpace = THREE.SRGBColorSpace;
         map.wrapS = THREE.RepeatWrapping;
         map.wrapT = THREE.RepeatWrapping;
@@ -670,16 +1047,14 @@ export class Game {
 
     private refreshPlayerModel() {
         const pigData = localStorage.getItem('pigGameData');
-        let pigModelPath = '/pig.glb';
+        let pigModelPath = '/assets/3D_Models/Pigs/minecraft_-_pig.glb';
 
         if (pigData) {
             try {
                 const data = JSON.parse(pigData);
-                const selectedPigId = data.selectedPig || 'basic';
+                const selectedPigId = data.selectedPig || 'minecraft';
                 this.activePigId = selectedPigId;
-                if (selectedPigId !== 'basic') {
-                    pigModelPath = `/assets/3D_Models/Pigs/` + this.getPigFilenameById(selectedPigId);
-                }
+                pigModelPath = `/assets/3D_Models/Pigs/` + this.getPigFilenameById(selectedPigId);
             } catch (e) {
                 console.error('Error parsing pig game data:', e);
             }
@@ -1475,6 +1850,9 @@ export class Game {
         this.distance = 0;
         this.speed = 0.8;
         this.currentBiom = 'intro';
+        this.flightStartTime = performance.now();
+        this.flightObstaclesDodged = 0;
+        this.loadControlBindings();
 
         this.obstacles.forEach(o => this.scene.remove(o));
         this.decorations.forEach(d => this.scene.remove(d));
@@ -1493,8 +1871,23 @@ export class Game {
         const hud = document.getElementById('hud'); if (hud) hud.classList.remove('hidden');
         const appView = document.getElementById('app'); if (appView) appView.style.visibility = 'visible';
 
-        const pauseElement = document.getElementById('pause');
-        if (pauseElement) pauseElement.classList.add('hidden');
+        const pauseOverlay = document.getElementById('pause-overlay');
+        if (pauseOverlay) pauseOverlay.classList.add('hidden');
+        const settingsOverlay = document.getElementById('settings-overlay');
+        if (settingsOverlay) settingsOverlay.classList.add('hidden');
+        const gameOverElement = document.getElementById('game-over');
+        if (gameOverElement) gameOverElement.classList.add('hidden');
+
+        const finalScoreElem = document.getElementById('final-score');
+        const finalDistanceElem = document.getElementById('final-distance');
+        const finalTimeElem = document.getElementById('final-time');
+        const finalDodgedElem = document.getElementById('final-dodged');
+        if (finalScoreElem) finalScoreElem.textContent = '0';
+        if (finalDistanceElem) finalDistanceElem.textContent = '0m';
+        if (finalTimeElem) finalTimeElem.textContent = '0:00';
+        if (finalDodgedElem) finalDodgedElem.textContent = '0';
+
+        this.updateBiomProgress();
     }
 
     private gameOver(): void {
@@ -1503,12 +1896,35 @@ export class Game {
         const gameOverElement = document.getElementById('game-over');
         if (gameOverElement) gameOverElement.classList.remove('hidden');
         const finalScoreElem = document.getElementById('final-score');
-        if (finalScoreElem) finalScoreElem.textContent = `FINAL SCORE: ${Math.floor(this.score)}`;
-        if (window.menuManager) window.menuManager.updateGameStats(this.score, this.distance);
-        setTimeout(() => {
-            if (gameOverElement) gameOverElement.classList.add('hidden');
-            if (window.menuAnimation) window.menuAnimation.showMenu();
-        }, 2000);
+        if (finalScoreElem) finalScoreElem.textContent = `${Math.floor(this.score)}`;
+        const finalDistanceElem = document.getElementById('final-distance');
+        if (finalDistanceElem) finalDistanceElem.textContent = `${Math.floor(this.distance)}m`;
+        const flightTimeSeconds = Math.floor((performance.now() - this.flightStartTime) / 1000);
+        const finalTimeElem = document.getElementById('final-time');
+        const flightTimeDisplay = this.formatTime(flightTimeSeconds);
+        if (finalTimeElem) finalTimeElem.textContent = flightTimeDisplay;
+        const finalDodgedElem = document.getElementById('final-dodged');
+        if (finalDodgedElem) finalDodgedElem.textContent = this.flightObstaclesDodged.toString();
+
+        const bestScore = parseInt(localStorage.getItem('bestScore') || '0');
+        const bestDistance = parseInt(localStorage.getItem('bestDistance') || '0');
+        const bestObstacles = parseInt(localStorage.getItem('bestObstacles') || '0');
+        const bestTimeSeconds = parseInt(localStorage.getItem('bestTimeSeconds') || '0');
+        if (Math.floor(this.score) > bestScore) localStorage.setItem('bestScore', `${Math.floor(this.score)}`);
+        if (Math.floor(this.distance) > bestDistance) localStorage.setItem('bestDistance', `${Math.floor(this.distance)}`);
+        if (this.flightObstaclesDodged > bestObstacles) localStorage.setItem('bestObstacles', `${this.flightObstaclesDodged}`);
+        if (flightTimeSeconds > bestTimeSeconds) {
+            localStorage.setItem('bestTimeSeconds', `${flightTimeSeconds}`);
+            localStorage.setItem('bestTime', flightTimeDisplay);
+        }
+
+        if (window.menuManager) window.menuManager.updateGameStats(this.score, this.distance, flightTimeSeconds, this.flightObstaclesDodged);
+        const hud = document.getElementById('hud');
+        if (hud) hud.classList.add('hidden');
+        const pauseOverlay = document.getElementById('pause-overlay');
+        if (pauseOverlay) pauseOverlay.classList.add('hidden');
+        const settingsOverlay = document.getElementById('settings-overlay');
+        if (settingsOverlay) settingsOverlay.classList.add('hidden');
     }
 
     private onResize() {
@@ -1702,6 +2118,7 @@ export class Game {
             const distElem = document.getElementById('distance');
             if (scoreElem) scoreElem.innerText = `SCORE: ${Math.floor(this.score).toString().padStart(5, '0')}`;
             if (distElem) distElem.innerText = `DIST: ${Math.floor(this.distance)}m`;
+            this.updateBiomProgress();
 
             if (this.currentBiom === 'clouds' || this.currentBiom === 'city' || this.currentBiom === 'sky' || this.currentBiom === 'desert') {
                 const gridWidth = (this.currentBiom === 'desert') ? 13 : 5;
@@ -1801,6 +2218,7 @@ export class Game {
                         if (pBox.intersectsBox(oBox)) this.gameOver();
                     }
                     if (obs.position.z < this.player.position.z - 200) {
+                        if (this.gameActive && !this.isIntro) this.flightObstaclesDodged += 1;
                         this.scene.remove(obs); this.obstacles.splice(i, 1);
                     }
                 }

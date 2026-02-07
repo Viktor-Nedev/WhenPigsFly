@@ -49,7 +49,8 @@ function createFallbackMenuAnimation() {
     init() {
       const startBtn = document.getElementById('main-start-btn');
       const menuPlayBtn = document.getElementById('menu-play-btn');
-      const restartBtn = document.getElementById('restart-btn');
+      const playAgainBtn = document.getElementById('play-again-btn');
+      const menuBtn = document.getElementById('menu-btn');
 
       if (startBtn) {
         startBtn.addEventListener('click', () => this.showMenu());
@@ -59,8 +60,12 @@ function createFallbackMenuAnimation() {
         menuPlayBtn.addEventListener('click', () => this.startGame());
       }
 
-      if (restartBtn) {
-        restartBtn.addEventListener('click', () => this.showMenu());
+      if (menuBtn) {
+        menuBtn.addEventListener('click', () => this.showMenu());
+      }
+
+      if (playAgainBtn) {
+        playAgainBtn.addEventListener('click', () => this.startGame());
       }
     }
 
@@ -94,15 +99,19 @@ document.getElementById('start-btn')?.addEventListener('click', () => {
 });
 
 
-document.getElementById('restart-btn')?.addEventListener('click', () => {
+document.getElementById('menu-btn')?.addEventListener('click', () => {
   if (window.menuAnimation) {
     const gameOver = document.getElementById('game-over');
     if (gameOver) gameOver.classList.add('hidden');
     window.menuAnimation.showMenu();
-  } else {
-    const startEvent = new KeyboardEvent('keydown', { code: 'Enter' });
-    window.dispatchEvent(startEvent);
   }
+});
+
+document.getElementById('play-again-btn')?.addEventListener('click', () => {
+  const gameOver = document.getElementById('game-over');
+  if (gameOver) gameOver.classList.add('hidden');
+  const startEvent = new KeyboardEvent('keydown', { code: 'Enter' });
+  window.dispatchEvent(startEvent);
 });
 
 

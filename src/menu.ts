@@ -45,9 +45,9 @@ export class MenuAnimation {
         }
 
 
-        const restartBtn = document.getElementById('restart-btn');
-        if (restartBtn) {
-            restartBtn.addEventListener('click', () => {
+        const menuBtn = document.getElementById('menu-btn');
+        if (menuBtn) {
+            menuBtn.addEventListener('click', () => {
                 this.showMenuDirect();
             });
         }

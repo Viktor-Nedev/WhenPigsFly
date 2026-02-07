@@ -761,6 +761,11 @@
     font-weight: 400;
 }
 
+.setting-controls select option {
+    background: #fff2fb;
+    color: #ff1493;
+}
+
 .settings-buttons {
     display: flex;
     gap: 15px;
