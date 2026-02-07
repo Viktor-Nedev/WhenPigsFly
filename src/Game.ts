@@ -47,6 +47,13 @@ export class Game {
         'basic': 'standard', 'cute_stylized': 'standard', 'elegant': 'standard', 'foreman': 'standard', 'crown': 'standard'
     };
 
+    private pigRotations: { [pigId: string]: number } = {
+        'cute_stylized': Math.PI * 1.5,
+        'elegant': Math.PI,
+        'muddy': Math.PI,
+        'crown': Math.PI
+    };
+
     private wingConfigs: { [key: string]: { [wingId: string]: WingTransform } } = {
         'standard': {
             'default': { y: 0.9, z: -0.4, scale: 5.0 },
@@ -67,7 +74,134 @@ export class Game {
         },
         'long': {
             'default': { y: 0.9, z: -0.8, scale: 5.0 }
-        }
+        },
+        'basic': {
+            'demon': { y: 0.95, z: -0.4, scale: 5.5 },
+            'angel_v1': { y: 0.5, z: -0.25, scale: 5.0 },
+            'angel_low': { y: 1.05, z: -0.4, scale: 5.0 },
+            'elytra': { y: 1.7, z: -1.3, scale: 3.1 },
+            'superman': { y: 1.1, z: -0.6, scale: 4.8 }
+        },
+        'cute_stylized': {
+            'demon': { y: 1.25, z: -0.3, scale: 5.5 },
+            'angel_v1': { y: 0.55, z: -0.3, scale: 5.0 },
+            'angel_low': { y: 1.2, z: -0.35, scale: 5.0 },
+            'elytra': { y: 1.32, z: -0.95, scale: 2.6 }
+        },
+        'elegant': {
+            'angel_v1': { y: -0.7, z: -0.2, scale: 5.0 },
+            'angel_v2': { y: -0.08, z: -0.3, scale: 5.0 },
+            'elytra': { y: 0.5, z: -0.6, scale: 2.6 },
+            'superman': { y: 0.3, z: -0.4, scale: 4.8 },
+            'basic_wings': { y: 0.1, z: -0.3, scale: 5.0 }
+        },
+        'foreman': {
+            'angel_v1': { y: 0.3, z: -0.2, scale: 5.0 },
+            'angel_v2': { y: 0.45, z: -0.25, scale: 5.0 },
+            'angel_low': { y: 1.15, z: -0.35, scale: 5.0 },
+            'elytra': { y: 1.4, z: -0.9, scale: 2.2 },
+            'superman': { y: 0.95, z: -0.45, scale: 4.8 },
+            'basic_wings': { y: 0.6, z: -0.3, scale: 5.0 }
+        },
+        'hamm': {
+            'demon': { y: 1.45, z: -0.35, scale: 6 },
+            'angel_v1': { y: 0.2, z: -0.15, scale: 5.0 },
+            'angel_v2': { y: 0.45, z: -0.25, scale: 7.0 },
+            'angel_low': { y: 1.5, z: -0.35, scale: 5.0 },
+            'elytra': { y: 1.6, z: -2, scale: 2.4 },
+            'superman': { y: 1.15, z: -0.45, scale: 4.4 }
+        },
+        'lowpoly': {
+            'demon': { y: 1.6, z: -0.35, scale: 7 },
+            'angel_v1': { y: 0.35, z: -0.25, scale: 6.5 },
+            'angel_v2': { y: 0.85, z: -0.3, scale: 6.5 },
+            'angel_low': { y: 1.25, z: -0.35, scale: 6.8 },
+            'elytra': { y: 1.67, z: -1.1, scale: 3.2 },
+            'superman': { y: 1.35, z: -0.5, scale: 5.0 },
+            'basic_wings': { y: 0.9, z: -0.35, scale: 6.8 }
+        },
+        'king_pig': {
+            'angel_v1': { y: -1, z: -0.2, scale: 5.0 },
+            'angel_v2': { y: -0.4, z: -0.25, scale: 5.0 },
+            'angel_low': { y: 0.8, z: -1, scale: 5.0 },
+            'elytra': { y: 0.2, z: -1.8, scale: 2.2 },
+            'superman': { y: 0.3, z: -3, scale: 4.8 },
+            'basic_wings': { y: 0, z: -0.3, scale: 5.0 }
+        },
+        'minecraft': {
+            'demon': { y: 1.9, z: -0.35, scale: 7 },
+            'angel_v1': { y: -0.5, z: -0.2, scale: 5.0 },
+            'angel_v2': { y: 0.8, z: -0.3, scale: 5.0 },
+            'angel_low': { y: 1.4, z: -0.35, scale: 6 },
+            'elytra': { y: 1.7, z: -1.6, scale: 2.8 },
+            'superman': { y: 1.2, z: -0.7, scale: 4.8 },
+            'basic_wings': { y: 0.9, z: -0.3, scale: 5.0 }
+        },
+        'waddles': {
+            'demon': { y: 1.3, z: 1, scale: 6.2 },
+            'angel_v1': { y: 0.35, z: -0.15, scale: 5.0 },
+            'angel_v2': { y: 0.7, z: -0.35, scale: 6.0 },
+            'angel_low': { y: 1.4, z: -0.35, scale: 6.0 },
+            'elytra': { y: 1.6, z: -2, scale: 3 },
+            'superman': { y: 1.0, z: -0.7, scale: 5.0 },
+            'basic_wings': { y: 0.8, z: -0.1, scale: 6.0 }
+        },
+        'muddy': {
+            'demon': { z: 0.5 },
+            'angel_v1': { y: -0.7, z: -0.2, scale: 5.0 },
+            'angel_v2': { y: 0.15, z: -0.3, scale: 6.0 },
+            'elytra': { y: 1, z: -2, scale: 2.8 },
+            'superman': { y: 0.8, z: -1.2, scale: 4.8 },
+            'basic_wings': { y: 0.4, z: -0.3, scale: 5.0 }
+        },
+        'peppa': {
+            'demon': { y: 1, z: -1, scale: 6.7 },
+            'angel_v1': { y: -0.5, z: -0.15, scale: 5.0 },
+            'angel_v2': { y: 0.2, z: -0.35, scale: 6.0 },
+            'angel_low': { y: 1.1, z: -0.65, scale: 6.0 },
+            'elytra': { y: 0.4, z: -2, scale: 3 },
+            'superman': { y: 0.3, z: -2, scale: 5.0 },
+            'basic_wings': { y: 0.8, z: -0.5, scale: 6.0 }
+        },
+
+        'crown': {
+            'demon': { y: 1.9, z: -0.35, scale: 7 },
+            'angel_v1': { y: -0.5, z: -0.2, scale: 5.0 },
+            'angel_v2': { y: 0.8, z: -0.3, scale: 5.0 },
+            'angel_low': { y: 1.4, z: -0.35, scale: 6 },
+            'elytra': { y: 1.7, z: -1.6, scale: 2.8 },
+            'superman': { y: 1.2, z: -0.7, scale: 4.8 },
+            'basic_wings': { y: 0.9, z: -0.3, scale: 5.0 }
+        },
+
+        'piglet': {
+            'demon': { y: 1.2, z: -1, scale: 6.7 },
+            'angel_v1': { y: -0.5, z: -0.15, scale: 5.0 },
+            'angel_v2': { y: 0.2, z: -0.35, scale: 6.0 },
+            'angel_low': { y: 1.1, z: -0.65, scale: 6.0 },
+            'elytra': { y: 0.4, z: -2, scale: 3 },
+            'superman': { y: 1, z: -3, scale: 4.0 },
+            'basic_wings': { y: 0.8, z: -0.5, scale: 6.0 }
+        },
+
+        'porky': {
+            'demon': { y: 1.2, z: -1, scale: 6.7 },
+            'angel_v1': { y: -0.5, z: -0.15, scale: 5.0 },
+            'angel_v2': { y: 0.2, z: -0.35, scale: 6.0 },
+            'angel_low': { y: 1.1, z: -0.65, scale: 6.0 },
+            'elytra': { y: 0.4, z: -2, scale: 3 },
+            'superman': { y: 1, z: -3, scale: 4.0 },
+            'basic_wings': { y: 0.5, z: -0.5, scale: 6.0 }
+        },
+        'pumba': {
+            'demon': { y: 1.2, z: 0, scale: 6.7 },
+            'angel_v1': { y: -0.5, z: -0, scale: 5.0 },
+            'angel_v2': { y: 0.2, z: -0, scale: 6.0 },
+            'angel_low': { y: 1.1, z: -0, scale: 6.0 },
+            'elytra': { y: 1, z: -2, scale: 2 },
+            'superman': { y: 1.2, z: -3, scale: 3.0 },
+            'basic_wings': { y: 0.5, z: 0, scale: 5.5 }
+        },
     };
 
     private score: number = 0;
@@ -1080,6 +1214,8 @@ export class Game {
                 const normalizedScale = 2.0 / (maxDim || 1.0);
                 wrapper.scale.set(normalizedScale, normalizedScale, normalizedScale);
 
+                const rotation = this.pigRotations[this.activePigId] || 0;
+                wrapper.rotation.y = rotation;
                 this.pigMesh.add(wrapper);
                 this.pigMesh.scale.set(2.0, 2.0, 2.0);
                 this.loadAndAttachWings();
@@ -1106,7 +1242,8 @@ export class Game {
 
         try {
             const data = JSON.parse(gameData);
-            const selectedWingId = data.selectedWing || 'none';
+            let selectedWingId = data.selectedWing || 'none';
+            if (selectedWingId === 'black') selectedWingId = 'none';
             this.activeWingId = selectedWingId;
 
             const wingMapping: { [key: string]: string } = {
@@ -1115,12 +1252,6 @@ export class Game {
                 'angel_v2': '/assets/3D_Models/Wings/angel_wings.glb',
                 'angel_low': '/assets/3D_Models/Wings/angel_wings_low_poly.glb',
                 'black': '/assets/3D_Models/Wings/black_wings.glb',
-                'butterfly_v1': '/assets/3D_Models/Wings/butterfly_wings (1).glb',
-                'butterfly_v2': '/assets/3D_Models/Wings/butterfly_wings (2).glb',
-                'butterfly_v3': '/assets/3D_Models/Wings/butterfly_wings (3).glb',
-                'butterfly_v4': '/assets/3D_Models/Wings/butterfly_wings (4).glb',
-                'butterfly_v5': '/assets/3D_Models/Wings/butterfly_wings.glb',
-                'butterfly_trans': '/assets/3D_Models/Wings/butterfly_wings_transperant.glb',
                 'elytra': '/assets/3D_Models/Wings/minecraft_-_elytra.glb',
                 'superman': '/assets/3D_Models/Wings/superman_cape.glb',
                 'basic_wings': '/assets/3D_Models/Wings/wings.glb'
@@ -1133,15 +1264,10 @@ export class Game {
                 const wings = gltf.scene;
                 this.wingMesh = new THREE.Group();
 
-                const isButterfly = selectedWingId.includes('butterfly');
+                const skipBuiltInAnim = (selectedWingId === 'angel_low' || selectedWingId === 'black');
                 wings.traverse((child: THREE.Object3D) => {
                     if ((child as THREE.Mesh).isMesh) {
                         const m = (child as THREE.Mesh).material as THREE.MeshStandardMaterial;
-                        if (isButterfly && m) {
-                            m.transparent = true;
-                            m.alphaTest = 0.5;
-                            m.side = THREE.DoubleSide;
-                        }
                     }
                 });
 
@@ -1167,6 +1293,10 @@ export class Game {
                 wWrapper.scale.set(normScale, normScale, normScale);
 
                 this.wingMesh.add(wWrapper);
+                if (selectedWingId === 'elytra' || selectedWingId === 'superman') {
+                    this.wingMesh.userData.baseRotationX = Math.PI / 2;
+                    this.wingMesh.rotation.x = Math.PI / 2;
+                }
 
                 wings.traverse((child: THREE.Object3D) => {
                     const name = child.name.toLowerCase();
@@ -1185,7 +1315,7 @@ export class Game {
                 this.wingMesh.position.set(finalX, finalY, finalZ);
                 this.player.add(this.wingMesh);
 
-                if (gltf.animations && gltf.animations.length > 0) {
+                if (!skipBuiltInAnim && gltf.animations && gltf.animations.length > 0) {
                     this.wingMixer = new THREE.AnimationMixer(wings);
                     const action = this.wingMixer.clipAction(gltf.animations[0]);
                     action.setEffectiveTimeScale(1.8);
@@ -1202,7 +1332,7 @@ export class Game {
             'cute_stylized': 'cute_stylized_pig_low_poly_game_ready.glb',
             'elegant': 'elegant_pig.glb', 'foreman': 'foreman_pig.glb', 'hamm': 'kingdom_hearts_iii_-_hamm.glb',
             'lowpoly': 'low-poly_pig.glb', 'minecraft': 'minecraft_-_pig.glb', 'king_pig': 'mobile_-_angry_birds_go_-_king_pig.glb',
-            'waddles': 'mr_waddles_gravity_falls.glb', 'muddy': 'muddy_pig.glb', 'peppa': 'peppa_pig_with_2d_look.glb',
+            'waddles': 'nov_model.glb', 'muddy': 'muddy_pig.glb', 'peppa': 'peppa_pig_with_2d_look.glb',
             'crown': 'pig_with_crown.glb', 'piglet': 'piglet.glb', 'porky': 'porky_pig.glb', 'pumba': 'pumba.glb'
         };
         return mapping[id] || 'pig.glb';
@@ -2014,8 +2144,10 @@ export class Game {
         if (this.wingMesh && this.activeWingId !== 'none') {
             const isGlider = (this.activeWingId === 'superman' || this.activeWingId === 'elytra');
             if (isGlider) {
-                this.wingMesh.rotation.x = Math.sin(t * 15) * 0.02;
+                const baseRot = this.wingMesh.userData.baseRotationX || 0;
+                this.wingMesh.rotation.x = baseRot + Math.sin(t * 15) * 0.02;
             } else {
+                const flapSpeed = (this.activeWingId === 'black' || this.activeWingId === 'angel_low') ? 6 : 8;
                 const lift = Math.sin(t * 6) * 0.15;
                 const archetype = this.pigArchetypes[this.activePigId] || 'standard';
                 const configGroup = this.wingConfigs[archetype] || this.wingConfigs['standard'];
@@ -2023,13 +2155,23 @@ export class Game {
                 const baseAnchorY = (customConfig.y !== undefined) ? customConfig.y : 0.9;
 
                 this.wingMesh.position.y = baseAnchorY + lift;
-                const flapCycle = Math.sin(t * 8);
-                const flapAngle = 0.6 + (flapCycle * 0.4);
-                if (this.leftWingPart && this.rightWingPart) {
-                    this.leftWingPart.rotation.z = flapAngle;
-                    this.rightWingPart.rotation.z = -flapAngle;
+                const flapCycle = Math.sin(t * flapSpeed);
+                if (this.activeWingId === 'black') {
+                    const flapAngle = flapCycle * 0.5;
+                    if (this.leftWingPart && this.rightWingPart) {
+                        this.leftWingPart.rotation.z = flapAngle;
+                        this.rightWingPart.rotation.z = -flapAngle;
+                    } else {
+                        this.wingMesh.rotation.z = flapAngle * 0.8;
+                    }
                 } else {
-                    this.wingMesh.rotation.x = Math.sin(t * 8) * 0.15;
+                    const flapAngle = 0.6 + (flapCycle * 0.4);
+                    if (this.leftWingPart && this.rightWingPart) {
+                        this.leftWingPart.rotation.z = flapAngle;
+                        this.rightWingPart.rotation.z = -flapAngle;
+                    } else {
+                        this.wingMesh.rotation.x = Math.sin(t * 8) * 0.15;
+                    }
                 }
             }
         }
