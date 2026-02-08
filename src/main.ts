@@ -1,6 +1,7 @@
 
 import { Game } from './Game';
 import { audioManager } from './audio';
+import '../menu.css';
 
 declare global {
   interface Window {
@@ -28,16 +29,7 @@ const registerGlobalButtonSounds = () => {
   document.body.addEventListener('click', handler, { capture: true });
 };
 
-const loadMenuCSS = () => {
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = 'menu.css';
-  document.head.appendChild(link);
-};
-
 document.addEventListener('DOMContentLoaded', () => {
-  loadMenuCSS();
-
   registerGlobalButtonSounds();
   audioManager.playBackgroundMusic();
 
