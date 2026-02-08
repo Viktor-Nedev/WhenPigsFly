@@ -75,7 +75,6 @@ export class Game {
         'muddy': Math.PI,
         'crown': Math.PI
     };
-
     private wingConfigs: { [key: string]: { [wingId: string]: WingTransform } } = {
         'standard': {
             'default': { y: 0.9, z: -0.4, scale: 5.0 },
@@ -2490,8 +2489,8 @@ export class Game {
             this.player.position.z += this.speed;
             this.distance = this.player.position.z;
             if (!this.isIntro) {
-                this.score += 0.1;
-                this.speed += 0.0001;
+                this.score += 0.03;
+                this.speed += 0.00003;
             }
             this.player.position.x += (this.targetX - this.player.position.x) * 0.1;
 

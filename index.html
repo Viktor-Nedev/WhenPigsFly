@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/png" href="/assets/game_logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>When Pigs Fly!</title>
 
@@ -102,6 +102,18 @@
             align-items: center;
             justify-content: center;
             overflow: hidden;
+        }
+
+        .logo-wrapper {
+            width: 250px;
+            height: 250px;
+            margin-bottom: 20px;
+        }
+
+        .logo-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         .start-header::before {
@@ -934,6 +946,9 @@
             </div>
 
             <div class="pig-flying-container">
+                <div class="logo-wrapper">
+                    <img src="/assets/game_logo.png" alt="When Pigs Fly Logo">
+                </div>
                 <button class="start-flight-btn" id="main-start-btn" data-sound="start">
                     <span class="start-btn-text">START GAME</span>
                 </button>
