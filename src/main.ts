@@ -1,5 +1,6 @@
 
 import { Game } from './Game';
+import { audioManager } from './audio';
 
 declare global {
   interface Window {
@@ -10,6 +11,23 @@ declare global {
 
 const game = new Game();
 
+const registerGlobalButtonSounds = () => {
+  const handler = (event: MouseEvent) => {
+    const clicked = event.target as HTMLElement | null;
+    const button = clicked?.closest('button');
+    if (!button) return;
+    if (button.dataset.sound === 'start') {
+      audioManager.playStartClick();
+      return;
+    }
+    if (button.dataset.sound === 'none') {
+      return;
+    }
+    audioManager.playButtonClick();
+  };
+  document.body.addEventListener('click', handler, { capture: true });
+};
+
 const loadMenuCSS = () => {
   const link = document.createElement('link');
   link.rel = 'stylesheet';
@@ -19,6 +37,9 @@ const loadMenuCSS = () => {
 
 document.addEventListener('DOMContentLoaded', () => {
   loadMenuCSS();
+
+  registerGlobalButtonSounds();
+  audioManager.playBackgroundMusic();
 
   import('./MenuManager').then(module => {
     const MenuManager = module.MenuManager;

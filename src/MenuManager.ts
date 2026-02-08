@@ -1,4 +1,5 @@
 import { MenuRenderer } from './MenuRenderer';
+import { audioManager } from './audio';
 
 export class MenuManager {
     private menuRenderer: MenuRenderer | null = null;
@@ -120,6 +121,7 @@ export class MenuManager {
         if (volumeInput) {
             volumeInput.addEventListener('input', (e) => {
                 const value = (e.target as HTMLInputElement).value;
+                audioManager.setMusicVolumePercent(Number(value));
                 const volumeValue = document.getElementById('volume-value');
                 if (volumeValue) volumeValue.textContent = `${value}%`;
             });
@@ -128,6 +130,7 @@ export class MenuManager {
         if (sfxInput) {
             sfxInput.addEventListener('input', (e) => {
                 const value = (e.target as HTMLInputElement).value;
+                audioManager.setSfxVolumePercent(Number(value));
                 const sfxValue = document.getElementById('sfx-value');
                 if (sfxValue) sfxValue.textContent = `${value}%`;
             });
@@ -602,6 +605,8 @@ export class MenuManager {
         localStorage.setItem('volume', volume);
         localStorage.setItem('sfx', sfx);
         localStorage.setItem('controls', controls);
+        audioManager.setMusicVolumePercent(Number(volume));
+        audioManager.setSfxVolumePercent(Number(sfx));
         alert('Settings saved!');
     }
 

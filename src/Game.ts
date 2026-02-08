@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+import { audioManager } from './audio';
 
 interface WingTransform {
     y?: number;
@@ -266,7 +267,6 @@ export class Game {
     private isShiftPressed: boolean = false;
     private isPPressed: boolean = false;
     private isPaused: boolean = false;
-    private isMusicOn: boolean = true;
     private wasPausedBeforeSettings: boolean = false;
     private flightStartTime: number = 0;
     private flightObstaclesDodged: number = 0;
@@ -675,15 +675,16 @@ export class Game {
     }
 
     private toggleMusic() {
-        this.isMusicOn = !this.isMusicOn;
+        audioManager.toggleMusicEnabled();
         this.updateMusicIndicator();
     }
 
     private updateMusicIndicator() {
+        const musicOn = audioManager.isMusicEnabled();
         const icon = document.getElementById('music-icon');
-        if (icon) icon.textContent = this.isMusicOn ? '🔊' : '🔇';
+        if (icon) icon.textContent = musicOn ? '🔊' : '🔇';
         const btn = document.getElementById('music-btn');
-        if (btn) btn.setAttribute('aria-pressed', this.isMusicOn ? 'false' : 'true');
+        if (btn) btn.setAttribute('aria-pressed', musicOn ? 'false' : 'true');
     }
 
     private syncGameSettingsInputs() {
@@ -711,12 +712,14 @@ export class Game {
 
         volumeInput?.addEventListener('input', (e) => {
             const value = (e.target as HTMLInputElement).value;
+            audioManager.setMusicVolumePercent(Number(value));
             const volumeValue = document.getElementById('game-volume-value');
             if (volumeValue) volumeValue.textContent = `${value}%`;
         });
 
         sfxInput?.addEventListener('input', (e) => {
             const value = (e.target as HTMLInputElement).value;
+            audioManager.setSfxVolumePercent(Number(value));
             const sfxValue = document.getElementById('game-sfx-value');
             if (sfxValue) sfxValue.textContent = `${value}%`;
         });
@@ -730,6 +733,9 @@ export class Game {
         localStorage.setItem('volume', volume);
         localStorage.setItem('sfx', sfx);
         localStorage.setItem('controls', controls);
+
+        audioManager.setMusicVolumePercent(Number(volume));
+        audioManager.setSfxVolumePercent(Number(sfx));
 
         const menuVolume = document.getElementById('volume') as HTMLInputElement | null;
         const menuSfx = document.getElementById('sfx') as HTMLInputElement | null;
@@ -2019,6 +2025,8 @@ export class Game {
         if (finalDodgedElem) finalDodgedElem.textContent = '0';
         const distElem = document.getElementById('distance');
         if (distElem) distElem.innerText = 'DIST: 0m';
+
+        audioManager.playBackgroundMusic();
 
         this.updateBiomProgress();
     }
