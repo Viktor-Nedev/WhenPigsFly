@@ -9,10 +9,8 @@ export class MenuManager {
     private selectedWing: string = 'none';
     private selectedParticle: string = 'none';
     private pigBankClicks: number = 0;
-    private pigBankStage: number = 0;
     private pigBankBusy: boolean = false;
     private pigBankCardEl: HTMLElement | null = null;
-    private pigBankRewardEl: HTMLElement | null = null;
     private pigBankUnlocked: boolean = false;
 
     private pigs = [
@@ -445,7 +443,6 @@ export class MenuManager {
         if (!pigImage || !progressFill || !rewardSlot) return;
 
         this.pigBankCardEl = pigCard;
-        this.pigBankRewardEl = rewardSlot;
 
         const totalDistance = parseInt(localStorage.getItem('totalDistance') || '0');
         const base = parseInt(localStorage.getItem('pigBankDistanceBase') || '0');
@@ -506,7 +503,6 @@ export class MenuManager {
         clicksLabel: HTMLElement | null
     ): void {
         const stage = Math.min(3, Math.floor(this.pigBankClicks / 8));
-        this.pigBankStage = stage;
         const images = [
             '/assets/3D_Models/Chest/pigbank_normal.png',
             '/assets/3D_Models/Chest/pigbank_stage1.png',

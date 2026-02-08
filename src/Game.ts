@@ -1406,7 +1406,7 @@ export class Game {
                 const skipBuiltInAnim = (selectedWingId === 'angel_low' || selectedWingId === 'black');
                 wings.traverse((child: THREE.Object3D) => {
                     if ((child as THREE.Mesh).isMesh) {
-                        const m = (child as THREE.Mesh).material as THREE.MeshStandardMaterial;
+                        //const m = (child as THREE.Mesh).material as THREE.MeshStandardMaterial;
                     }
                 });
 
