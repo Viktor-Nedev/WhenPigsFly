@@ -50,7 +50,10 @@ export class MenuManager {
         { id: 'sparkles', name: 'Sparkles', icon: '✨', effect: 'Sparkle Trail', owned: false, price: 200 },
         { id: 'fire', name: 'Fire Trail', icon: '🔥', effect: 'Fire Trail', owned: false, price: 350 },
         { id: 'rainbow', name: 'Rainbow Trail', icon: '🌈', effect: 'Rainbow Trail', owned: false, price: 450 },
-        { id: 'stars', name: 'Star Dust', icon: '⭐', effect: 'Star Trail', owned: false, price: 300 }
+        { id: 'stars', name: 'Star Dust', icon: '⭐', effect: 'Star Trail', owned: false, price: 300 },
+        { id: 'confetti', name: 'Confetti Shower', icon: '🎉', effect: 'Bursting confetti stream', owned: false, price: 500 },
+        { id: 'aurora', name: 'Aurora Veil', icon: '🌌', effect: 'Shimmering aurora glow', owned: false, price: 550 },
+        { id: 'nebula', name: 'Nebula Dust', icon: '🌠', effect: 'Cosmic dust trail', owned: false, price: 650 }
     ];
 
     constructor(game: any) {

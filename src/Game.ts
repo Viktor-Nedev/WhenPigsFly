@@ -10,6 +10,27 @@ interface WingTransform {
     scale?: number;
 }
 
+interface ParticlePreset {
+    colors: number[];
+    sizeRange: [number, number];
+    lifeRange: [number, number];
+    speedRange: [number, number];
+    spreadX: number;
+    upwardBias: number;
+    gravity: number;
+    spawnRate: number;
+    maxActive: number;
+    sizeMultiplier?: number;
+}
+
+interface ParticleInstance {
+    mesh: THREE.Mesh;
+    velocity: THREE.Vector3;
+    life: number;
+    maxLife: number;
+    preset: ParticlePreset;
+}
+
 export class Game {
     private scene: THREE.Scene;
     private camera: THREE.PerspectiveCamera;
@@ -203,6 +224,118 @@ export class Game {
             'superman': { y: 1.2, z: -3, scale: 3.0 },
             'basic_wings': { y: 0.5, z: 0, scale: 5.5 }
         },
+    };
+
+    private selectedParticleId: string = 'none';
+    private particleAccumulator: number = 0;
+    private particleGeometry: THREE.SphereGeometry | null = null;
+    private activeParticles: ParticleInstance[] = [];
+    private particlePresets: Record<string, ParticlePreset> = {
+        sparkles: {
+            colors: [
+                0xffffff, 0xfff9c4, 0xffcde0,
+                0xd7f7ff, 0xffe8c1, 0xffd5f4
+            ],
+            sizeRange: [0.08, 0.14],
+            lifeRange: [0.45, 0.95],
+            speedRange: [0.6, 1.1],
+            spreadX: 0.35,
+            upwardBias: 1.0,
+            gravity: -0.3,
+            spawnRate: 0.05,
+            maxActive: 120,
+            sizeMultiplier: 1.2
+        },
+        fire: {
+            colors: [
+                0xff6b4a, 0xffc438, 0xff2b20,
+                0xffa347, 0xffef8f, 0xff7f17
+            ],
+            sizeRange: [0.12, 0.2],
+            lifeRange: [0.35, 0.7],
+            speedRange: [1.6, 2.2],
+            spreadX: 0.6,
+            upwardBias: 0.3,
+            gravity: 0.9,
+            spawnRate: 0.04,
+            maxActive: 140,
+            sizeMultiplier: 1.3
+        },
+        rainbow: {
+            colors: [
+                0xff4af5, 0x41f4ff, 0xffb541, 0x90ff41, 0xff4182,
+                0xff7de1, 0x82ff6b, 0xff9c3d, 0x7e7dff
+            ],
+            sizeRange: [0.15, 0.24],
+            lifeRange: [0.7, 1.3],
+            speedRange: [1.0, 1.6],
+            spreadX: 0.7,
+            upwardBias: 0.6,
+            gravity: -0.2,
+            spawnRate: 0.05,
+            maxActive: 160,
+            sizeMultiplier: 1.35
+        },
+        stars: {
+            colors: [
+                0xffffff, 0xfff475, 0xa2dfff,
+                0xffd9ad, 0xd6fffb, 0xffc0ff
+            ],
+            sizeRange: [0.05, 0.12],
+            lifeRange: [0.85, 1.5],
+            speedRange: [0.9, 1.5],
+            spreadX: 0.3,
+            upwardBias: 1.1,
+            gravity: -0.4,
+            spawnRate: 0.04,
+            maxActive: 100,
+            sizeMultiplier: 1.15
+        },
+        confetti: {
+            colors: [
+                0xff3366, 0x33ffdd, 0xfff066, 0x9d33ff,
+                0x33a1ff, 0xff6347, 0x7eff81, 0xff9ae3
+            ],
+            sizeRange: [0.18, 0.32],
+            lifeRange: [0.8, 1.6],
+            speedRange: [0.8, 1.3],
+            spreadX: 0.8,
+            upwardBias: 0.8,
+            gravity: -0.5,
+            spawnRate: 0.03,
+            maxActive: 200,
+            sizeMultiplier: 1.4
+        },
+        aurora: {
+            colors: [
+                0x6ef7d7, 0x7a6aff, 0xc5ff9f, 0x8cd6ff, 0xffe2a4,
+                0x5ff9b7, 0x98a5ff, 0xffc8ff
+            ],
+            sizeRange: [0.2, 0.35],
+            lifeRange: [1.0, 1.8],
+            speedRange: [0.6, 1.2],
+            spreadX: 0.9,
+            upwardBias: 0.9,
+            gravity: -0.2,
+            spawnRate: 0.025,
+            maxActive: 220,
+            sizeMultiplier: 1.5
+        },
+        nebula: {
+            colors: [
+                0xff6adf, 0x6ee7ff, 0xd48dff, 0xffd85c,
+                0x61ff86, 0xa3fffb, 0xff9783
+            ],
+            sizeRange: [0.2, 0.4],
+            lifeRange: [1.2, 2.2],
+            speedRange: [0.7, 1.3],
+            spreadX: 1.0,
+            upwardBias: 0.4,
+            gravity: -0.1,
+            spawnRate: 0.022,
+            maxActive: 240,
+            sizeMultiplier: 1.6
+        }
     };
 
     private score: number = 0;
@@ -1194,6 +1327,7 @@ export class Game {
                 const data = JSON.parse(pigData);
                 const selectedPigId = data.selectedPig || 'minecraft';
                 this.activePigId = selectedPigId;
+                this.selectedParticleId = this.normalizeParticleId(data.selectedParticle);
                 pigModelPath = `/assets/3D_Models/Pigs/` + this.getPigFilenameById(selectedPigId);
             } catch (e) {
                 console.error('Error parsing pig game data:', e);
@@ -1342,6 +1476,11 @@ export class Game {
             'crown': 'pig_with_crown.glb', 'piglet': 'piglet.glb', 'porky': 'porky_pig.glb', 'pumba': 'pumba.glb'
         };
         return mapping[id] || 'pig.glb';
+    }
+
+    private normalizeParticleId(id?: string): string {
+        if (!id) return 'none';
+        return this.particlePresets[id] ? id : 'none';
     }
 
     private createProceduralPig() {
@@ -1978,6 +2117,93 @@ export class Game {
         }
     }
 
+    private shouldEmitParticles(): boolean {
+        return this.gameActive && !this.isPaused && this.selectedParticleId !== 'none';
+    }
+
+    private getParticleGeometry(): THREE.SphereGeometry {
+        if (!this.particleGeometry) {
+            this.particleGeometry = new THREE.SphereGeometry(0.5, 6, 6);
+        }
+        return this.particleGeometry;
+    }
+
+    private spawnParticle(preset: ParticlePreset) {
+        const geometry = this.getParticleGeometry();
+        const size = preset.sizeRange[0] + Math.random() * (preset.sizeRange[1] - preset.sizeRange[0]);
+        const color = preset.colors[Math.floor(Math.random() * preset.colors.length)];
+        const material = new THREE.MeshBasicMaterial({
+            color,
+            transparent: true,
+            opacity: 1,
+            depthWrite: false
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        const multiplier = preset.sizeMultiplier ?? 1.0;
+        mesh.scale.setScalar(size * multiplier);
+        const baseY = this.player.position.y - 0.5;
+        mesh.position.set(
+            this.player.position.x + (Math.random() - 0.5) * 0.4,
+            baseY + (Math.random() - 0.2) * 0.25,
+            this.player.position.z - 1.4
+        );
+        mesh.renderOrder = 999;
+        this.scene.add(mesh);
+
+        const speed = preset.speedRange[0] + Math.random() * (preset.speedRange[1] - preset.speedRange[0]);
+        const velocity = new THREE.Vector3(
+            (Math.random() - 0.5) * preset.spreadX,
+            preset.upwardBias + (Math.random() - 0.5) * 0.3,
+            -speed
+        );
+        const maxLife = preset.lifeRange[0] + Math.random() * (preset.lifeRange[1] - preset.lifeRange[0]);
+        this.activeParticles.push({ mesh, velocity, life: 0, maxLife, preset });
+    }
+
+    private updateParticles(delta: number) {
+        if (!this.shouldEmitParticles()) {
+            if (this.activeParticles.length > 0) {
+                this.clearParticles();
+            }
+            return;
+        }
+
+        const preset = this.particlePresets[this.selectedParticleId];
+        if (!preset) return;
+
+        this.particleAccumulator += delta;
+        while (this.particleAccumulator >= preset.spawnRate && this.activeParticles.length < preset.maxActive) {
+            this.spawnParticle(preset);
+            this.particleAccumulator -= preset.spawnRate;
+        }
+
+        const gravityDelta = preset.gravity * delta;
+        for (let i = this.activeParticles.length - 1; i >= 0; i--) {
+            const particle = this.activeParticles[i];
+            particle.life += delta;
+
+            if (particle.life >= particle.maxLife) {
+                this.scene.remove(particle.mesh);
+                this.activeParticles.splice(i, 1);
+                continue;
+            }
+
+            particle.velocity.y += gravityDelta;
+            particle.mesh.position.addScaledVector(particle.velocity, delta);
+
+            const fade = Math.max(0, 1 - particle.life / particle.maxLife);
+            const mat = particle.mesh.material as THREE.MeshBasicMaterial;
+            mat.opacity = fade;
+            if (fade < 0.2) mat.transparent = true;
+        }
+    }
+
+    private clearParticles() {
+        this.activeParticles.forEach(p => this.scene.remove(p.mesh));
+        this.activeParticles = [];
+        this.particleAccumulator = 0;
+    }
+
     private startGame() {
         this.refreshPlayerModel();
         this.gameActive = true;
@@ -1998,6 +2224,7 @@ export class Game {
 
         this.obstacles = []; this.decorations = []; this.grounds = []; this.clouds = [];
         this.objectMixers = [];
+        this.clearParticles();
 
         this.scene.background = new THREE.Color(0xa6d0ff);
         this.scene.fog = new THREE.FogExp2(0xa6d0ff, 0.0001);
@@ -2034,6 +2261,7 @@ export class Game {
     private gameOver(): void {
         this.gameActive = false;
         this.isPaused = false;
+        this.clearParticles();
         const gameOverElement = document.getElementById('game-over');
         if (gameOverElement) gameOverElement.classList.remove('hidden');
         const finalScoreElem = document.getElementById('final-score');
@@ -2377,6 +2605,7 @@ export class Game {
                 }
             }
         }
+        this.updateParticles(delta);
         this.renderer.render(this.scene, this.camera);
     }
 
