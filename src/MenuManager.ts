@@ -4,7 +4,7 @@ import { audioManager } from './audio';
 export class MenuManager {
     private menuRenderer: MenuRenderer | null = null;
     private game: any;
-    private coins: number = 5000;
+    private coins: number = 0;
     private selectedPig: string = 'minecraft';
     private selectedWing: string = 'none';
     private selectedParticle: string = 'none';
@@ -14,21 +14,21 @@ export class MenuManager {
     private pigBankUnlocked: boolean = false;
 
     private pigs = [
-        { id: 'basic', name: 'Original Pig', model: '/pig.glb', icon: '/assets/3D_Models/Pigs/shop/original_pig.png', speed: 5.0, agility: 3.0, luck: 2.0, owned: false, price: 600, color: '#ffadc7' },
-        { id: 'cute_stylized', name: 'Mud Pig', model: '/assets/3D_Models/Pigs/cute_stylized_pig_low_poly_game_ready.glb', icon: '/images/shop/mudpig.png', speed: 5.2, agility: 3.5, luck: 2.0, owned: false, price: 500 },
-        { id: 'elegant', name: 'Elegant Pig', model: '/assets/3D_Models/Pigs/elegant_pig.glb', icon: '/images/shop/elegant_minecraft_pig.png', speed: 5.5, agility: 3.2, luck: 2.5, owned: false, price: 500 },
-        { id: 'foreman', name: 'Foreman Pig', model: '/assets/3D_Models/Pigs/foreman_pig.glb', icon: '/images/shop/foreman.png', speed: 5.0, agility: 3.0, luck: 4.0, owned: false, price: 600 },
-        { id: 'hamm', name: 'Toy Hamm', model: '/assets/3D_Models/Pigs/kingdom_hearts_iii_-_hamm.glb', icon: '/images/shop/hamm.png', speed: 5.0, agility: 4.0, luck: 3.0, owned: false, price: 600 },
-        { id: 'lowpoly', name: 'Pixel Pig', model: '/assets/3D_Models/Pigs/low-poly_pig.glb', icon: '/images/shop/pixelpig.png', speed: 5.8, agility: 4.5, luck: 2.0, owned: false, price: 500 },
-        { id: 'minecraft', name: 'Minecraft Pig', model: '/assets/3D_Models/Pigs/minecraft_-_pig.glb', icon: '/images/shop/minecraftpig.png', speed: 5.0, agility: 3.0, luck: 2.0, owned: true, selected: true, color: '#ffadc7', price: 500 },
-        { id: 'king_pig', name: 'King Pig', model: '/assets/3D_Models/Pigs/mobile_-_angry_birds_go_-_king_pig.glb', icon: '/images/shop/kingpig.png', speed: 4.0, agility: 2.0, luck: 8.0, owned: false, price: 600 },
-        { id: 'waddles', name: 'Mr. Waddles', model: '/assets/3D_Models/Pigs/nov_model.glb', icon: '/images/shop/mrwaddles.png', speed: 5.0, agility: 5.0, luck: 5.0, owned: false, price: 600 },
-        { id: 'muddy', name: 'Durty Pig', model: '/assets/3D_Models/Pigs/muddy_pig.glb', icon: '/images/shop/durtyminecraftpig.png', speed: 5.2, agility: 3.2, luck: 3.5, owned: false, price: 500 },
-        { id: 'peppa', name: 'Peppa Pig', model: '/assets/3D_Models/Pigs/peppa_pig_with_2d_look.glb', icon: '/images/shop/peppapig.png', speed: 5.0, agility: 4.0, luck: 2.0, owned: false, price: 800 },
+        { id: 'basic', name: 'Original Pig', model: '/pig.glb', icon: '/assets/3D_Models/Pigs/shop/original_pig.png', speed: 6, agility: 3.0, luck: 2.0, owned: false, price: 600, color: '#ffadc7' },
+        { id: 'cute_stylized', name: 'Mud Pig', model: '/assets/3D_Models/Pigs/cute_stylized_pig_low_poly_game_ready.glb', icon: '/images/shop/mudpig.png', speed: 6, agility: 3.5, luck: 2.0, owned: false, price: 500 },
+        { id: 'elegant', name: 'Elegant Pig', model: '/assets/3D_Models/Pigs/elegant_pig.glb', icon: '/images/shop/elegant_minecraft_pig.png', speed: 6, agility: 3.2, luck: 2.5, owned: false, price: 500 },
+        { id: 'foreman', name: 'Foreman Pig', model: '/assets/3D_Models/Pigs/foreman_pig.glb', icon: '/images/shop/foreman.png', speed: 6, agility: 3.0, luck: 4.0, owned: false, price: 600 },
+        { id: 'hamm', name: 'Toy Hamm', model: '/assets/3D_Models/Pigs/kingdom_hearts_iii_-_hamm.glb', icon: '/images/shop/hamm.png', speed: 6, agility: 4.0, luck: 3.0, owned: false, price: 600 },
+        { id: 'lowpoly', name: 'Pixel Pig', model: '/assets/3D_Models/Pigs/low-poly_pig.glb', icon: '/images/shop/pixelpig.png', speed: 6, agility: 4.5, luck: 2.0, owned: false, price: 500 },
+        { id: 'minecraft', name: 'Minecraft Pig', model: '/assets/3D_Models/Pigs/minecraft_-_pig.glb', icon: '/images/shop/minecraftpig.png', speed: 6, agility: 3.0, luck: 2.0, owned: true, selected: true, color: '#ffadc7', price: 500 },
+        { id: 'king_pig', name: 'King Pig', model: '/assets/3D_Models/Pigs/mobile_-_angry_birds_go_-_king_pig.glb', icon: '/images/shop/kingpig.png', speed: 6, agility: 2.0, luck: 8.0, owned: false, price: 600 },
+        { id: 'waddles', name: 'Mr. Waddles', model: '/assets/3D_Models/Pigs/nov_model.glb', icon: '/images/shop/mrwaddles.png', speed: 6, agility: 5.0, luck: 5.0, owned: false, price: 600 },
+        { id: 'muddy', name: 'Durty Pig', model: '/assets/3D_Models/Pigs/muddy_pig.glb', icon: '/images/shop/durtyminecraftpig.png', speed: 6, agility: 3.2, luck: 3.5, owned: false, price: 500 },
+        { id: 'peppa', name: 'Peppa Pig', model: '/assets/3D_Models/Pigs/peppa_pig_with_2d_look.glb', icon: '/images/shop/peppapig.png', speed: 6, agility: 4.0, luck: 2.0, owned: false, price: 800 },
         { id: 'crown', name: 'Technoblade', model: '/assets/3D_Models/Pigs/pig_with_crown.glb', icon: '/images/shop/technoblade.png', speed: 6.0, agility: 3.5, luck: 6.0, owned: false, price: 600 },
-        { id: 'piglet', name: 'Piglet', model: '/assets/3D_Models/Pigs/piglet.glb', icon: '/images/shop/piglet.png', speed: 7.0, agility: 5.5, luck: 1.0, owned: false, price: 800 },
-        { id: 'porky', name: 'Porky Pig', model: '/assets/3D_Models/Pigs/porky_pig.glb', icon: '/images/shop/porky.png', speed: 5.8, agility: 4.2, luck: 3.0, owned: false, price: 800 },
-        { id: 'pumba', name: 'Pumba', model: '/assets/3D_Models/Pigs/pumba.glb', icon: '/images/shop/pumba.png', speed: 4.5, agility: 2.5, luck: 4.5, owned: false, price: 1000 }
+        { id: 'piglet', name: 'Piglet', model: '/assets/3D_Models/Pigs/piglet.glb', icon: '/images/shop/piglet.png', speed: 6, agility: 5.5, luck: 1.0, owned: false, price: 800 },
+        { id: 'porky', name: 'Porky Pig', model: '/assets/3D_Models/Pigs/porky_pig.glb', icon: '/images/shop/porky.png', speed: 6, agility: 4.2, luck: 3.0, owned: false, price: 800 },
+        { id: 'pumba', name: 'Pumba', model: '/assets/3D_Models/Pigs/pumba.glb', icon: '/images/shop/pumba.png', speed: 6, agility: 2.5, luck: 4.5, owned: false, price: 1000 }
     ];
 
 

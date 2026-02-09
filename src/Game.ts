@@ -394,6 +394,12 @@ export class Game {
     private tileWidth: number = 0;
     private transitionStartZ: number = 0;
     private targetAltitude: number = 8.5;
+    private transitionCloudsCleared: boolean = false;
+    private completeTransitionPending: boolean = false;
+    private transitionCloudFade: boolean = false;
+    private portalTriggered: boolean = false;
+    private portalTargetBiom: 'transitioning_to_desert' | 'transitioning_to_sky' | 'transitioning_to_city' | null = null;
+    private portalZ: number = Infinity;
 
     private isMouseDown: boolean = false;
     private isShiftPressed: boolean = false;
@@ -908,6 +914,22 @@ export class Game {
         if (biom === 'transitioning_to_desert') return { start: 0, end: 200, next: 'DESERT' };
         if (biom === 'clouds') return { start: 0, end: 200, next: 'DESERT' };
         return { start: 0, end: 200, next: 'DESERT' };
+    }
+
+    private finishTransition() {
+        if (!this.isIntro) return;
+        this.transitionCloudFade = false;
+        this.transitionCloudsCleared = true;
+        if (this.currentBiom === 'intro') {
+            this.switchToNatureBiom();
+        } else if (this.currentBiom === 'transitioning_to_sky') {
+            this.switchToSkyBiom();
+        } else if (this.currentBiom === 'transitioning_to_city') {
+            this.switchToCityBiom();
+        } else if (this.currentBiom === 'transitioning_to_desert') {
+            this.switchToDesertBiom();
+        }
+        this.completeTransitionPending = false;
     }
 
     private formatTime(seconds: number) {
@@ -2087,6 +2109,10 @@ export class Game {
     private startTransition(zOffset: number = 0, targetY: number | null = null) {
         this.isIntro = true;
         this.transitionStartZ = this.player.position.z;
+        this.transitionCloudsCleared = false;
+        this.completeTransitionPending = false;
+        this.transitionCloudFade = false;
+        this.portalTriggered = false;
 
         if (targetY !== null) {
             this.targetAltitude = targetY;
@@ -2306,6 +2332,8 @@ export class Game {
         this.scene.background = new THREE.Color(0x6db9ff);
         this.scene.fog = new THREE.FogExp2(0x6db9ff, 0.00008);
         this.pigMesh.position.y = 0;
+        this.obstacles.forEach(o => this.scene.remove(o));
+        this.obstacles = [];
         if (this.grounds.length === 0) {
             this.initEnvironment();
         }
@@ -2318,6 +2346,8 @@ export class Game {
         this.scene.fog = new THREE.FogExp2(0xf0d29b, 0.00012);
         this.pigMesh.position.y = 0;
 
+        this.obstacles.forEach(o => this.scene.remove(o));
+        this.obstacles = [];
         this.grounds.forEach(g => this.scene.remove(g));
         this.decorations.forEach(d => this.scene.remove(d));
         this.grounds = [];
@@ -2335,6 +2365,8 @@ export class Game {
         this.pigMesh.position.y = 0;
         this.skyObstacleLastZ = -Infinity;
 
+        this.obstacles.forEach(o => this.scene.remove(o));
+        this.obstacles = [];
         this.grounds.forEach(g => this.scene.remove(g));
         this.decorations.forEach(d => this.scene.remove(d));
         this.grounds = [];
@@ -2352,6 +2384,8 @@ export class Game {
         this.cityLaneLastCarZ = [-Infinity, -Infinity, -Infinity];
         this.cityRockLastZ = [-Infinity, -Infinity];
 
+        this.obstacles.forEach(o => this.scene.remove(o));
+        this.obstacles = [];
         this.grounds.forEach(g => this.scene.remove(g));
         this.decorations.forEach(d => this.scene.remove(d));
         this.grounds = [];
@@ -2444,7 +2478,8 @@ export class Game {
 
                 const progress = this.player.position.z - this.transitionStartZ;
 
-                if (progress > 300 && progress < 500) {
+
+                if (this.isIntro && !this.transitionCloudsCleared && progress > 300 && progress < 500) {
                     if (this.currentBiom === 'transitioning_to_sky') {
                         this.scene.background = new THREE.Color(0x3a5a7f);
                         this.scene.fog = new THREE.FogExp2(0x3a5a7f, 0.00015);
@@ -2457,32 +2492,60 @@ export class Game {
                     }
                 }
 
-                if (progress > 700) {
-                    if (this.currentBiom === 'intro') {
-                        this.switchToNatureBiom();
-                    } else if (this.currentBiom === 'transitioning_to_sky') {
-                        this.switchToSkyBiom();
-                    } else if (this.currentBiom === 'transitioning_to_city') {
-                        this.switchToCityBiom();
-                    } else if (this.currentBiom === 'transitioning_to_desert') {
-                        this.switchToDesertBiom();
+                if (this.isIntro && !this.transitionCloudsCleared && progress >= 500) {
+                    this.transitionCloudFade = true;
+                }
+
+                if (this.transitionCloudFade && this.clouds.length > 0) {
+                    let allGone = true;
+                    this.clouds.forEach(c => {
+                        c.traverse(obj => {
+                            const mat = (obj as any).material;
+                            if (mat && mat.opacity !== undefined) {
+                                mat.opacity *= 0.97;
+                                if (mat.opacity > 0.05) allGone = false;
+                            }
+                        });
+                    });
+                    if (allGone) {
+                        this.clouds.forEach(c => this.scene.remove(c));
+                        this.clouds = [];
+                        this.transitionCloudsCleared = true;
+                        this.transitionCloudFade = false;
+                        this.completeTransitionPending = true;
                     }
+                }
+
+                if (this.completeTransitionPending || progress > 700) {
+                    this.finishTransition();
                 }
             }
 
-            if (this.currentBiom === 'clouds' && this.score >= 200) {
-                this.currentBiom = 'transitioning_to_desert';
-                this.startTransition(0, 8.5);
+            const triggerPortal = (nextBiom: typeof this.currentBiom) => {
+                this.portalTriggered = true;
+                this.portalTargetBiom = nextBiom as any;
+                this.portalZ = this.player.position.z + 120;
+                this.createCloud(this.portalZ, true);
+            };
+
+            if (this.currentBiom === 'clouds' && this.score >= 200 && !this.portalTriggered) {
+                triggerPortal('transitioning_to_desert');
             }
 
-            if (this.currentBiom === 'desert' && this.score >= 400) {
-                this.currentBiom = 'transitioning_to_sky';
-                this.startTransition(0, 8.5);
+            if (this.currentBiom === 'desert' && this.score >= 400 && !this.portalTriggered) {
+                triggerPortal('transitioning_to_sky');
             }
 
-            if (this.currentBiom === 'sky' && this.score >= 600) {
-                this.currentBiom = 'transitioning_to_city';
-                this.startTransition(0, 8.5);
+            if (this.currentBiom === 'sky' && this.score >= 600 && !this.portalTriggered) {
+                triggerPortal('transitioning_to_city');
+            }
+
+            if (this.portalTriggered && this.portalTargetBiom && this.player.position.z >= this.portalZ) {
+                this.currentBiom = this.portalTargetBiom;
+                this.startTransition(-40, this.altitude);
+                this.portalTriggered = false;
+                this.portalTargetBiom = null;
+                this.portalZ = Infinity;
             }
 
             this.player.position.y = this.altitude;

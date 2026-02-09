@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>When Pigs Fly!</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Bungee&family=Changa+One&family=Luckiest+Guy&display=swap");
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #ffcce6, #a6d0ff, #c2e7ff, #ffd6eb);
+        background-size: 400% 400%;
+        animation: gradientBG 12s ease infinite;
+        font-family: "Changa One", cursive;
+        color: #ff1493;
+        overflow: hidden;
+      }
+
+      @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
+      .card {
+        width: min(900px, 90vw);
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 32px;
+        border: 8px solid #ff6bcb;
+        box-shadow:
+          0 20px 40px rgba(255, 107, 203, 0.3),
+          0 0 0 12px white,
+          0 0 0 16px #6bf;
+        padding: 40px;
+        text-align: center;
+      }
+
+      .title {
+        font-family: "Luckiest Guy", cursive;
+        font-size: clamp(36px, 6vw, 72px);
+        color: #ff1493;
+        text-shadow:
+          3px 3px 0 white,
+          6px 6px 0 rgba(0, 0, 0, 0.15);
+        letter-spacing: 2px;
+        margin-bottom: 16px;
+      }
+
+      .subtitle {
+        font-family: "Bungee", cursive;
+        font-size: clamp(14px, 2.6vw, 22px);
+        color: #6bf;
+        margin-bottom: 30px;
+      }
+
+      .desc {
+        font-size: clamp(16px, 2.4vw, 22px);
+        color: #444;
+        margin-bottom: 32px;
+        line-height: 1.5;
+      }
+
+      .cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        padding: 18px 40px;
+        border-radius: 28px;
+        border: 6px solid white;
+        background: linear-gradient(135deg, #ff1493, #ff6bcb);
+        color: white;
+        font-family: "Luckiest Guy", cursive;
+        font-size: clamp(20px, 3vw, 32px);
+        text-decoration: none;
+        box-shadow: 0 15px 30px rgba(255, 20, 147, 0.3);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .cta:hover {
+        transform: translateY(-3px) scale(1.03);
+        box-shadow: 0 20px 40px rgba(255, 20, 147, 0.4);
+      }
+
+      .cloud {
+        position: absolute;
+        background: white;
+        border-radius: 50px;
+        opacity: 0.45;
+        filter: blur(1px);
+        animation: floatCloud 18s linear infinite;
+      }
+
+      .cloud::before,
+      .cloud::after {
+        content: "";
+        position: absolute;
+        background: white;
+        border-radius: 50%;
+      }
+
+      .cloud-1 { width: 140px; height: 50px; top: 12%; left: -160px; animation-delay: 0s; }
+      .cloud-2 { width: 180px; height: 60px; top: 24%; left: -220px; animation-delay: 4s; }
+      .cloud-3 { width: 120px; height: 42px; top: 70%; left: -140px; animation-delay: 8s; }
+
+      .cloud-1::before { width: 60px; height: 60px; left: 20px; top: -25px; }
+      .cloud-1::after  { width: 50px; height: 50px; right: 18px; top: -18px; }
+      .cloud-2::before { width: 75px; height: 75px; left: 25px; top: -30px; }
+      .cloud-2::after  { width: 65px; height: 65px; right: 22px; top: -26px; }
+      .cloud-3::before { width: 50px; height: 50px; left: 18px; top: -22px; }
+      .cloud-3::after  { width: 44px; height: 44px; right: 14px; top: -18px; }
+
+      @keyframes floatCloud {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(calc(100vw + 300px)); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+    <div class="cloud cloud-3"></div>
+
+    <main class="card">
+      <div class="title">WHEN PIGS FLY!</div>
+      <div class="subtitle">WELCOME TO THE SKY ADVENTURE</div>
+      <p class="desc">
+        Fly your pig, dodge obstacles, and collect coins. Choose your favorite
+        pig, wings, and particle trails, then take off into a colorful world!
+      </p>
+      <a
+        class="cta"
+        href="https://when-pigs-fly.vercel.app/"
+        target="_blank"
+        rel="noopener"
+      >
+        START GAME
+      </a>
+    </main>
+  </body>
+</html>
